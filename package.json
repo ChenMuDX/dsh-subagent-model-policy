@@ -42,16 +42,35 @@
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg"
   },
-  "files": ["index.js", "policy.js", "management.js", "client.js", "cordis.patch.yml", "locale/*.json", "icon.svg", "README.md", "README_en.md", "CHANGELOG.md"],
-  "dependencies": { "zod": "4.4.3" },
-  "engines": { "dsh": ">=0.2.2-rc.1" },
-  "scripts": { "test": "node --test --test-isolation=none test/*.test.js", "check": "node --check index.js && node --check policy.js && node --check management.js && node --check client.js", "verify": "npm run check && npm test && npm pack --dry-run", "export:public": "node scripts/export-public.mjs" },
+  "files": [
+    "index.js",
+    "policy.js",
+    "management.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "README_en.md",
+    "CHANGELOG.md"
+  ],
+  "dependencies": {
+    "zod": "4.4.3"
+  },
+  "engines": {
+    "dsh": ">=0.2.2-rc.1"
+  },
   "dsh": {
-    "bundle": { "patch": "./cordis.patch.yml" },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
     "client": {
       "platform": "web",
       "immediately": true,
-      "inject": ["@deepseek-ai/dsh-client-ui-sidebar-right", "@deepseek-ai/dsh-api-remotes"]
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-sidebar-right",
+        "@deepseek-ai/dsh-api-remotes"
+      ]
     }
   }
 }
