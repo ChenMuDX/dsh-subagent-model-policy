@@ -2,9 +2,9 @@
 
 简体中文 · [English](https://github.com/ChenMuDX/dsh-subagent-model-policy/blob/main/README_en.md)
 
-作者：lez · 版本 `0.3.0-rc.1`（预发布）· 目标宿主 DeepSeek Harness `0.2.2-rc.1`。
+作者：lez · 版本 `0.3.0` · 目标宿主 DeepSeek Harness `0.2.2-rc.1`。
 
-> 这是预发布版本。核心链路、三页面板与合成回归已通过，但 AC-12 的 GUI 全项验收仍未完成，深度/存活超限等真实场景仍暂缓；不要把本版本表述为稳定版或全项验收版。
+> 本版本使用数字版本号，但 AC-12 的 GUI 全项验收仍未完成，深度/存活超限等真实场景仍暂缓；不要把本版本表述为全项验收版。
 
 在当前会话中管理子智能体的模型选择策略、候选模型池、会话级并发/递归限制，并记录创建时的策略与实际响应证据。默认关闭；安装不会改变主模型、其他会话的模型选择或宿主授权。
 
@@ -13,10 +13,10 @@
 在 DeepSeek Harness 的插件管理器中安装：
 
 ```text
-@lienze/dsh-subagent-model-policy@0.3.0-rc.1
+@lienze/dsh-subagent-model-policy@0.3.0
 ```
 
-预发布版本请显式指定版本，不要依赖 `latest`。安装或更新后按当前 Harness 的方式重载插件与页面；源码修改不等于运行实例已更新。若当前 Harness 使用 CLI 管理 profile，按该版本文档把同一包说明符加入对应 profile。
+安装后按当前 Harness 的方式重载插件与页面；源码修改不等于运行实例已更新。若当前 Harness 使用 CLI 管理 profile，按该版本文档把同一包说明符加入对应 profile。
 
 包名中的 `@lienze` 是发布账号的 scope；插件内部的存储域、命令与工具名沿用历史前缀 `lez-`，不影响安装、升级或已保存数据。
 

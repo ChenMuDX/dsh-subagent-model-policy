@@ -2,9 +2,9 @@
 
 [简体中文](https://github.com/ChenMuDX/dsh-subagent-model-policy/blob/main/README.md) · English
 
-Author: lez · Version `0.3.0-rc.1` (pre-release) · Target host DeepSeek Harness `0.2.2-rc.1`.
+Author: lez · Version `0.3.0` · Target host DeepSeek Harness `0.2.2-rc.1`.
 
-> This is a pre-release. The core paths, the three-page panel and the synthetic regression suite pass, but the full AC-12 GUI acceptance is still incomplete, and real scenarios such as depth/liveness overflow remain deferred. Do not describe this version as stable or fully accepted.
+> This release uses a numeric version, but the full AC-12 GUI acceptance is still incomplete, and real scenarios such as depth/liveness overflow remain deferred. Do not describe it as fully accepted.
 
 Manage the model selection policy for subagents in the current session: candidate model pool, session-level concurrency and recursion limits, and the recorded policy and actual response evidence at creation time. Disabled by default; installing it does not change the main model, other sessions' model selection, or host authorization.
 
@@ -13,10 +13,10 @@ Manage the model selection policy for subagents in the current session: candidat
 Install from the DeepSeek Harness plugin manager:
 
 ```text
-@lienze/dsh-subagent-model-policy@0.3.0-rc.1
+@lienze/dsh-subagent-model-policy@0.3.0
 ```
 
-Pin the version explicitly for a pre-release; do not rely on `latest`. After installing or updating, reload the plugin and page the way your Harness does; a source change is not a running instance. If your Harness manages profiles through the CLI, add the same package specifier to that profile.
+After installing or updating, reload the plugin and page the way your Harness does; a source change is not a running instance. If your Harness manages profiles through the CLI, add the same package specifier to that profile.
 
 The `@lienze` scope is the publishing account's scope. Internal identifiers keep the historical `lez-` prefix; this does not affect installation, upgrades or stored data.
 

@@ -2,7 +2,7 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的结构，版本号遵循 SemVer。
 
-## [0.3.0-rc.1] - 2026-11-09
+## [0.3.0] - 2026-11-09
 
 ### Changed
 
