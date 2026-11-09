@@ -1,0 +1,57 @@
+{
+  "name": "@lienze/dsh-subagent-model-policy",
+  "version": "0.3.0-rc.1",
+  "private": false,
+  "type": "module",
+  "description": "Session-scoped subagent policy, model guidance and execution evidence for DeepSeek Harness.",
+  "author": "lez",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ChenMuDX/dsh-subagent-model-policy.git"
+  },
+  "homepage": "https://github.com/ChenMuDX/dsh-subagent-model-policy#readme",
+  "bugs": {
+    "url": "https://github.com/ChenMuDX/dsh-subagent-model-policy/issues"
+  },
+  "keywords": [
+    "deepseek",
+    "deepseek-harness",
+    "harness",
+    "dsh",
+    "dsh-plugin",
+    "subagent",
+    "subagent-policy",
+    "subagent-model-selection",
+    "model-selection",
+    "model-policy",
+    "thinking-level",
+    "delegation",
+    "web-ui",
+    "i18n",
+    "子智能体",
+    "模型选择",
+    "子智能体策略"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": ["index.js", "policy.js", "management.js", "client.js", "cordis.patch.yml", "locale/*.json", "icon.svg", "README.md", "README_en.md", "CHANGELOG.md"],
+  "dependencies": { "zod": "4.4.3" },
+  "engines": { "dsh": ">=0.2.2-rc.1" },
+  "scripts": { "test": "node --test --test-isolation=none test/*.test.js", "check": "node --check index.js && node --check policy.js && node --check management.js && node --check client.js", "verify": "npm run check && npm test && npm pack --dry-run" },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": ["@deepseek-ai/dsh-client-ui-sidebar-right", "@deepseek-ai/dsh-api-remotes"]
+    }
+  }
+}

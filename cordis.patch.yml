@@ -1,0 +1,3 @@
+- insert:
+    - id: lez-subagent-policy
+      name: '@lienze/dsh-subagent-model-policy'
