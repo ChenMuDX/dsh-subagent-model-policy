@@ -1,5 +1,7 @@
 # 子智能体模型选择策略 · Subagent Model Policy
 
+简体中文 · [English](https://github.com/ChenMuDX/dsh-subagent-model-policy/blob/main/README_en.md)
+
 作者：lez · 版本 `0.3.0-rc.1`（预发布）· 目标宿主 DeepSeek Harness `0.2.2-rc.1`。
 
 > 这是预发布版本。核心链路、三页面板与合成回归已通过，但 AC-12 的 GUI 全项验收仍未完成，深度/存活超限等真实场景仍暂缓；不要把本版本表述为稳定版或全项验收版。

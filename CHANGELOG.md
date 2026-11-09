@@ -6,18 +6,15 @@
 
 ### Changed
 
-- 名称统一为「子智能体模型选择策略」/ `Subagent Model Policy`；npm 包名改为 `@lienze/dsh-subagent-model-policy`，安装与升级需使用新包名。
+- 名称统一为「子智能体模型选择策略」/ `Subagent Model Policy`；npm 包名由 `@lienze/dsh-subagent-policy` 改为 `@lienze/dsh-subagent-model-policy`，安装与升级需使用新包名。
 - 插件显示名与 README 标题同步更新；面板标题此前已使用同一名称。
+- 补充发布元数据：`repository`/`homepage`/`bugs` 指向公开仓库，`keywords` 含插件市场识别用的 `dsh-plugin`，`engines.dsh` 声明最低宿主版本；npm 页面可直接跳转源码仓库。
+- 增加英文说明 `README_en.md` 与顶部语言切换条；`files` 收录英文说明，新增 `npm run verify` 聚合语法检查、测试与打包预检。
 
 ### 兼容说明
 
-- 存储域、命令 `/subagent-policy`、工具 `subagent_policy` / `delegate_with_policy`、内部 bundle id 与样式前缀保持不变；已保存策略与执行记录在新包名下继续可读。
+- 存储域 `lez_subagent_policy`、命令 `/subagent-policy`、工具 `subagent_policy` / `delegate_with_policy`、内部 bundle id 与样式前缀保持不变；已保存策略与执行记录在新包名下继续可读。
 - 旧包 `@lienze/dsh-subagent-policy@0.2.0-rc.1` 保留可查，迁移时改用新包名重新安装。
-
-### Limitations
-
-- 预发布版本：AC-12 的 GUI 全项验收未完成；深度/存活真实超限、完整旧数据迁移与策略版本切换等场景仍暂缓。
-- 宿主授权、主模型、官方 profile 与原生工具参数不由本插件修改。
 
 ## [0.2.0-rc.1] - 2026-11-06
 
