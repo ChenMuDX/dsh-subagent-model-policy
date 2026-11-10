@@ -10,6 +10,7 @@ window.__ModuleLoader__.load({
     const NS = 'lez.subagentPolicy';
     const en = {
       title: 'Subagent Model Policy', open: 'Open subagent model policy', description: 'Strategies, model pool and delegation recursion limits in this session.',
+      versionLabel: 'Package version: {version}', repoLink: 'GitHub', repoLinkLabel: 'GitHub repository: {repo} (opens in a new tab)',
       scope: 'Current session', loading: 'Reading…', saving: 'Saving…', refreshing: 'Refreshing…', busy: 'Working…',
       refresh: 'Refresh server state', cancel: 'Cancel wait', retry: 'Try again', error: 'Request failed', serverError: 'The Host returned no result.',
       noModelsSelected: 'No models selected', badResponse: 'The Host returned an invalid policy snapshot.', missingCommand: 'The Host did not recognize /subagent-policy.', staleResponse: 'A response for a different session was rejected.',
@@ -66,7 +67,8 @@ window.__ModuleLoader__.load({
       hostCapacityZero: 'The Host reports a concurrent-subagent ceiling of 0; a session limit cannot be saved until the Host reports a positive ceiling.',
       hostLimitBlocked: 'The saved session limits (depth {depth} · concurrency {active}) exceed the current Host ceiling (depth {ceilingDepth} · concurrency {ceilingActive}). Adjust and save the limits on the model pool page first.',
       maxDepth: 'Maximum recursion depth', maxActive: 'Concurrent subagents',
-      depthHint: '0–{max}; 0 disables further delegation', activeHint: '1–{max} (Host ceiling {host})', activeHintUnknown: 'Unavailable while the Host concurrent-subagent ceiling cannot be read.',
+      depthHint: '0–{max}; 0 disables further delegation', depthHintHost: '0–{max} (Host value); 0 disables further delegation',
+      activeHint: '1–{max} (Host ceiling {host})', activeHintHost: '1–{max} (Host value)', activeHintUnknown: 'Unavailable while the Host concurrent-subagent ceiling cannot be read.',
       savedLimits: 'Saved: depth {depth} · concurrency {active}', noSavedLimits: 'No session limits saved yet.',
       effectiveActive: 'Upper bound while enabled: depth {depth} · concurrency {active} (session limit {local}; Host ceiling {host}).',
       effectiveUnknown: 'Upper bound while enabled: depth {depth} · concurrency {active}; the Host concurrent-subagent ceiling is currently unknown and cannot be verified. The Host still enforces its own capacity.',
@@ -101,6 +103,7 @@ window.__ModuleLoader__.load({
     };
     const zh = {
       title: '子智能体模型选择策略', open: '打开子智能体模型选择策略', description: '当前会话内的策略、候选池与并发递归限制。',
+      versionLabel: '包版本号：{version}', repoLink: 'GitHub', repoLinkLabel: 'GitHub 仓库：{repo}（在新标签页打开）',
       scope: '当前会话', loading: '正在读取…', saving: '正在保存…', refreshing: '正在刷新…', busy: '处理中…',
       refresh: '刷新服务端状态', cancel: '取消等待', retry: '重试读取', error: '请求失败', serverError: '宿主未返回结果。',
       noModelsSelected: '未选择模型', badResponse: '宿主返回的策略快照不符合约定。', missingCommand: '宿主未识别 /subagent-policy 命令。', staleResponse: '已拒绝属于其他会话的响应。',
@@ -157,7 +160,8 @@ window.__ModuleLoader__.load({
       hostCapacityZero: '宿主报告并发子智能体数量上限为 0；在宿主报告正数上限前，无法保存本会话限制。',
       hostLimitBlocked: '已保存的本会话限制（深度 {depth} · 并发 {active}）超出当前宿主上限（深度 {ceilingDepth} · 并发 {ceilingActive}）。请先到「模型池」调整并保存限制。',
       maxDepth: '最大递归深度', maxActive: '并发子智能体数量',
-      depthHint: '0–{max}；0 表示不再向下委派', activeHint: '1–{max}（宿主上限 {host}）', activeHintUnknown: '当前无法读取宿主并发子智能体数量上限，暂不能保存本会话限制。',
+      depthHint: '0–{max}；0 表示不再向下委派', depthHintHost: '0–{max}（宿主值）；0 表示不再向下委派',
+      activeHint: '1–{max}（宿主上限 {host}）', activeHintHost: '1–{max}（宿主值）', activeHintUnknown: '当前无法读取宿主并发子智能体数量上限，暂不能保存本会话限制。',
       savedLimits: '已保存：深度 {depth} · 并发 {active}', noSavedLimits: '尚未保存本会话限制。',
       effectiveActive: '启用后有效上界：深度 {depth} · 并发 {active}（本会话限制 {local}；宿主上限 {host}）。',
       effectiveUnknown: '启用后有效上界：深度 {depth} · 并发 {active}；当前无法读取或校验宿主并发子智能体数量上限，宿主仍独立执行自身容量限制。',
@@ -268,6 +272,12 @@ window.__ModuleLoader__.load({
       .lezsp .lezsp-detail-title{margin-top:8px;font-size:16px;line-height:1.35}.lezsp .lezsp-note{margin:9px 0;padding:8px 10px;border:1px solid var(--dsw-alias-border-l2);border-left:4px solid var(--dsw-alias-brand-primary);border-radius:8px;background:var(--dsw-alias-bg-layer-1);font-size:12px}
       .lezsp .lezsp-note.warn{border-left-color:var(--dsw-alias-state-warn-primary,var(--dsw-alias-label-primary))}
       .lezsp .lezsp-session-chip{display:inline-flex;align-items:center;padding:2px 8px;border:1px solid var(--dsw-alias-border-l2);border-radius:999px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-tertiary);font-size:11px;font-weight:600;white-space:nowrap}
+      .lezsp .lezsp-title-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 8px;min-width:0}
+      .lezsp .lezsp-title-row h1{min-width:0}
+      .lezsp .lezsp-head-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}
+      .lezsp .lezsp-version-badge{color:var(--dsw-alias-label-primary);font-variant-numeric:tabular-nums;font-weight:700}
+      .lezsp .lezsp-repo-link{color:var(--dsw-alias-brand-primary);font-size:12px;font-weight:600;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+      .lezsp .lezsp-repo-link:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
       .lezsp-header{display:inline-flex;gap:4px;align-items:center;min-width:0}.lezsp-header button{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;padding:4px;border:0;background:transparent;color:var(--dsw-alias-label-secondary)}
       @media(max-width:420px){.lezsp{padding:10px}.lezsp-nav button{font-size:11px}.lezsp dl{grid-template-columns:1fr;gap:1px}.lezsp dd{margin-bottom:6px}.lezsp-pool-row{grid-template-columns:auto minmax(0,1fr)}}
     `;
@@ -292,6 +302,15 @@ window.__ModuleLoader__.load({
       const ceiling = known ? Math.min(PLUGIN_MAX_ACTIVE, raw) : PLUGIN_MAX_ACTIVE;
       return {known, raw: known ? raw : null, ceiling, reason, canSave: known && ceiling >= 1};
     }
+    // A session without saved limits starts from the Host value it inherits; the
+    // same effective ceiling bounds the input and the save validation.
+    function hostLimitDefaults(host) {
+      return {maxDepth: String(host && Number.isSafeInteger(host.maxDepth) ? host.maxDepth : 0), maxActive: String(hostCapacity(host).ceiling)};
+    }
+    function repoName(url) {
+      const match = typeof url === 'string' ? url.match(/^https:\/\/github\.com\/([^/?#]+)\/([^/?#]+?)\/?$/) : null;
+      return match ? `${match[1]}/${match[2]}` : '';
+    }
     function strategyDraftOf(strategy) {
       const type = strategy ? (strategy.type === 'inherit' ? 'fixed' : strategy.type) : 'fixed';
       const allModels = new Set((strategy && strategy.models || []).map(keyOf));
@@ -311,6 +330,9 @@ window.__ModuleLoader__.load({
         && (value.defaultEffort === undefined || typeof value.defaultEffort === 'string')
         && value.efforts.every((effort) => effort && typeof effort.id === 'string' && typeof effort.name === 'string'));
       if (!whole(snap.revision) || typeof snap.canEdit !== 'boolean' || typeof snap.preview !== 'string') throw new Error('bad-snapshot');
+      // Package metadata is additive: older Host snapshots omit it entirely.
+      if (snap.version !== undefined && typeof snap.version !== 'string') throw new Error('bad-snapshot');
+      if (snap.repository !== undefined && (typeof snap.repository !== 'string' || !/^https:\/\//.test(snap.repository))) throw new Error('bad-snapshot');
       const policy = snap.policy;
       if (!policy || typeof policy.enabled !== 'boolean' || !['inherit', 'fixed', 'auto'].includes(policy.mode) || !Array.isArray(policy.models)) throw new Error('bad-snapshot');
       const management = snap.management;
@@ -409,7 +431,7 @@ window.__ModuleLoader__.load({
             const limits = snap.management.limits;
             return {
               poolDraft: { keys: new Set(entries.keys()), entries },
-              limitDraft: { maxDepth: limits ? String(limits.maxDepth) : '', maxActive: limits ? String(limits.maxActive) : '' },
+              limitDraft: limits ? { maxDepth: String(limits.maxDepth), maxActive: String(limits.maxActive) } : hostLimitDefaults(snap.host),
               strategyDraft: null, modelDraft: null, detail: null,
             };
           }, []);
@@ -418,7 +440,8 @@ window.__ModuleLoader__.load({
             if (!snap) return false;
             if (state.poolDraft && !sameRouteSet(state.poolDraft.keys, new Set(snap.management.pool.map(keyOf)))) return true;
             const limits = snap.management.limits;
-            if (state.limitDraft && (state.limitDraft.maxDepth !== (limits ? String(limits.maxDepth) : '') || state.limitDraft.maxActive !== (limits ? String(limits.maxActive) : ''))) return true;
+            const limitBaseline = limits ? { maxDepth: String(limits.maxDepth), maxActive: String(limits.maxActive) } : hostLimitDefaults(snap.host);
+            if (state.limitDraft && (state.limitDraft.maxDepth !== limitBaseline.maxDepth || state.limitDraft.maxActive !== limitBaseline.maxActive)) return true;
             if (state.strategyDraft?.dirty) return true;
             if (state.modelDraft?.dirty) return true;
             return false;
@@ -1090,8 +1113,13 @@ window.__ModuleLoader__.load({
             }
             if (additions.length) impact.push(fmt(t('poolImpactAdd'), { items: additions.map((key) => { const candidate = snap.candidates.find((row) => keyOf(row) === key); return candidate?.name || JSON.parse(key)[1]; }).join('、') }));
             const limits = snap.management.limits;
-            const limitDraft = ui.limitDraft || { maxDepth: '', maxActive: '' };
-            const limitDirty = limitDraft.maxDepth !== (limits ? String(limits.maxDepth) : '') || limitDraft.maxActive !== (limits ? String(limits.maxActive) : '');
+            const hostDefaults = hostLimitDefaults(snap.host);
+            const limitBaseline = limits ? { maxDepth: String(limits.maxDepth), maxActive: String(limits.maxActive) } : hostDefaults;
+            const limitDraft = ui.limitDraft || limitBaseline;
+            const limitDirty = limitDraft.maxDepth !== limitBaseline.maxDepth || limitDraft.maxActive !== limitBaseline.maxActive;
+            // Unsaved limits start from the Host values; the note says so until the
+            // draft differs from them. Editing back to the Host values restores it.
+            const hostDefaultsShown = !limits && limitDraft.maxDepth === hostDefaults.maxDepth && limitDraft.maxActive === hostDefaults.maxActive;
             const depthOver = Boolean(limits && limits.maxDepth > snap.host.maxDepth);
             const activeOver = Boolean(limits && capacity.known && limits.maxActive > capacity.raw);
             const conflict = depthOver || activeOver;
@@ -1142,11 +1170,13 @@ window.__ModuleLoader__.load({
                   h('label', { className: 'lezsp-field', htmlFor: idFor('limDepth') },
                     h('span', null, t('maxDepth')),
                     h('input', { id: idFor('limDepth'), type: 'number', inputMode: 'numeric', min: 0, max: snap.host.maxDepth, step: 1, value: limitDraft.maxDepth, disabled: !editable, placeholder: '0–' + snap.host.maxDepth, 'aria-describedby': idFor('limDepthHint'), onChange: (event) => commit((state) => ({ ...state, limitDraft: { ...state.limitDraft, maxDepth: event.target.value } })) }),
-                    h('small', { className: 'lezsp-muted', id: idFor('limDepthHint') }, fmt(t('depthHint'), { max: snap.host.maxDepth }))),
+                    h('small', { className: 'lezsp-muted', id: idFor('limDepthHint') }, fmt(hostDefaultsShown ? t('depthHintHost') : t('depthHint'), { max: snap.host.maxDepth }))),
                   h('label', { className: 'lezsp-field', htmlFor: idFor('limActive') },
                     h('span', null, t('maxActive')),
                     h('input', { id: idFor('limActive'), type: 'number', inputMode: 'numeric', min: 1, max: limitMaxActive, step: 1, value: limitDraft.maxActive, disabled: !editable, placeholder: '1–' + limitMaxActive, 'aria-describedby': idFor('limActiveHint'), onChange: (event) => commit((state) => ({ ...state, limitDraft: { ...state.limitDraft, maxActive: event.target.value } })) }),
-                    h('small', { className: 'lezsp-muted', id: idFor('limActiveHint') }, capacity.known ? fmt(t('activeHint'), { max: limitMaxActive, host: capacity.raw }) : t('activeHintUnknown')))),
+                    h('small', { className: 'lezsp-muted', id: idFor('limActiveHint') }, capacity.known
+                      ? (hostDefaultsShown ? fmt(t('activeHintHost'), { max: limitMaxActive }) : fmt(t('activeHint'), { max: limitMaxActive, host: capacity.raw }))
+                      : t('activeHintUnknown')))),
                 h('p', { className: 'lezsp-muted' }, limits ? fmt(t('savedLimits'), { depth: limits.maxDepth, active: limits.maxActive }) : t('noSavedLimits')),
                 h('p', { className: 'lezsp-muted' }, active && limits
                   ? (capacity.known
@@ -1217,12 +1247,26 @@ window.__ModuleLoader__.load({
               })) : h('div', { className: 'lezsp-empty' }, t('noRecords')));
           }
 
+          // Package metadata is optional: a snapshot without it renders no header extras.
+          const packageVersion = snap && typeof snap.version === 'string' ? snap.version : '';
+          const packageRepository = snap && typeof snap.repository === 'string' ? snap.repository : '';
+          const packageRepoName = repoName(packageRepository);
+
           if (!sessionId) return h('div', { className: 'lezsp' }, h('style', null, CSS), t('noSession'));
           return h('div', { className: 'lezsp', 'aria-label': t('title'), 'aria-busy': busy },
             h('style', null, CSS),
             h('header', null,
+              h('div', { className: 'lezsp-title-row' },
+                h('h1', null, t('title')),
+                packageVersion || packageRepoName ? h('div', { className: 'lezsp-head-meta' },
+                  packageVersion
+                    ? h('span', { className: 'lezsp-badge lezsp-version-badge', 'aria-label': fmt(t('versionLabel'), { version: packageVersion }) }, packageVersion)
+                    : null,
+                  packageRepoName
+                    ? h('a', { className: 'lezsp-repo-link', href: packageRepository, target: '_blank', rel: 'noopener noreferrer', 'aria-label': fmt(t('repoLinkLabel'), { repo: packageRepoName }) }, t('repoLink'))
+                    : null) : null),
               h('div', { className: 'lezsp-between lezsp-row' },
-                h('div', null, h('h1', null, t('title')), h('p', { className: 'lezsp-sub' }, t('description'))),
+                h('p', { className: 'lezsp-sub' }, t('description')),
                 h('div', { className: 'lezsp-row' },
                   h('span', { className: 'lezsp-session-chip', role: busy ? 'status' : undefined, 'aria-live': busy ? 'polite' : undefined }, busy ? t(ui.busy === 'read' ? 'loading' : 'saving') : t('scope')),
                   busy ? button(t('cancel'), cancel, { className: 'lezsp-small' }) : null))),

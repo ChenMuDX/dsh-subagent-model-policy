@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { defaults, validatePolicy, renderContext, selectRoute, checkAdmission, sameRoute, routeKey, fail, executionEvidence } from './policy.js';
 import {
   readLibrary, readDefault, legacyLibrary, materializeLegacy, emptyLibrary, buildPolicy,
@@ -47,7 +48,36 @@ const ACTIONS = new Set([
   'strategy.default','default.clear',
 ]);
 
+const packageJsonUrl = () => new URL('./package.json', import.meta.url);
+// The panel shows the installed package version and its GitHub page. Both are
+// read from this plugin's own package.json once, in apply(); a missing or
+// unreadable file simply omits the fields instead of hardcoding a value.
+function repositoryHttpsUrl(repository) {
+  let url = typeof repository === 'string' ? repository.trim()
+    : repository && typeof repository.url === 'string' ? repository.url.trim() : '';
+  if (!url) return '';
+  if (url.startsWith('git+')) url = url.slice(4);
+  if (url.startsWith('ssh://git@github.com/')) url = 'https://github.com/' + url.slice('ssh://git@github.com/'.length);
+  else if (url.startsWith('git@github.com:')) url = 'https://github.com/' + url.slice('git@github.com:'.length);
+  else if (url.startsWith('git://github.com/')) url = 'https://github.com/' + url.slice('git://github.com/'.length);
+  else if (url.startsWith('http://github.com/')) url = 'https://github.com/' + url.slice('http://github.com/'.length);
+  url = url.replace(/\.git$/i, '').replace(/\/+$/, '');
+  return /^https:\/\/github\.com\/[^/?#\s]+\/[^/?#\s]+$/.test(url) ? url : '';
+}
+export function readPackageMeta(readText = () => readFileSync(packageJsonUrl(), 'utf8')) {
+  try {
+    const parsed = JSON.parse(readText());
+    const version = parsed && typeof parsed.version === 'string' ? parsed.version.trim() : '';
+    const repository = repositoryHttpsUrl(parsed && parsed.repository);
+    return { ...(version ? { version } : {}), ...(repository ? { repository } : {}) };
+  } catch { return {}; }
+}
+
 export async function apply(ctx) {
+  return applyWithPackageMeta(ctx, readPackageMeta());
+}
+
+export async function applyWithPackageMeta(ctx, packageMeta) {
   const domain = await ctx.storageDomain.open(spec);
   ctx.effect(()=>()=>domain.close());
   const policies = domain.table('policies'), runs = domain.table('runs');
@@ -117,18 +147,26 @@ export async function apply(ctx) {
     const value=ctx.sessionProjections.stateOf(s,'subagentModelSelectionPolicy');
     return Array.isArray(value) ? value : undefined;
   }
-  // The host freezes its global allow-list into each brand-new top-level session. That
-  // snapshot may live on this agent's Session or, for children created by this plugin,
-  // only on the root. A non-fork local root without a snapshot falls back to the host's
-  // current enabled list; the host list remains the upper bound, never this plugin's own.
+  // Only a top-level, non-seeded Session re-reads the host's live allow-list. Child,
+  // fork and seed Sessions keep their own frozen authorization snapshot, so a later
+  // host change never retroactively widens an inherited boundary.
+  function liveRootSession(s) {
+    const header=s?.header;
+    return !!header && header.origin!=='subagent' && header.isSeeded!==true;
+  }
+  // The host freezes its global allow-list into each brand-new top-level session and
+  // never refreshes that projection, while its own settings keep changing. For an
+  // eligible top-level root the live list is the real upper bound, so it is used even
+  // when a snapshot exists; the snapshot is kept only as the recorded count. Child,
+  // fork and seed sessions still intersect their own snapshot.
   function authorization(agent, current=ctx.subagentModelSelection.current()) {
     if(!current.enabled) return {source:'none', routes:[], frozen:null};
     const own=session(agent), root=ctx.sessions.get(rootId(agent));
     const frozen=frozenSnapshot(own) ?? frozenSnapshot(root);
     const allowed=new Set(current.allowedModels.map(routeKey));
+    if(frozen && liveRootSession(own)) return {source:'host', frozen:frozen.length, routes:current.allowedModels.map(r=>({...r})).slice(0,24)};
     if(frozen) return {source:'session', frozen:frozen.length, routes:frozen.filter(r=>allowed.has(routeKey(r))).slice(0,24)};
-    const header=root?.header;
-    if(header && header.origin!=='subagent' && header.isSeeded!==true) return {source:'host', frozen:null, routes:current.allowedModels.map(r=>({...r})).slice(0,24)};
+    if(liveRootSession(root)) return {source:'host', frozen:null, routes:current.allowedModels.map(r=>({...r})).slice(0,24)};
     return {source:'none', frozen:null, routes:[]};
   }
   function officialRoutes(agent, current) { return authorization(agent, current).routes; }
@@ -275,7 +313,9 @@ export async function apply(ctx) {
     };
     const rows=[...runs.entries()].map(([,r])=>r).filter(r=>r.rootId===id).sort((a,b)=>b.createdAt-a.createdAt).slice(0,50);
     const diagnostics=[];
-    if(authz.source==='host') diagnostics.push('本会话没有官方固化快照；固定/自选按宿主当前已启用路由临时生效，原生 subagent 仍不带模型参数，请使用 delegate_with_policy。');
+    if(authz.source==='host') diagnostics.push(authz.frozen===null
+      ? '本会话没有官方固化快照；固定/自选按宿主当前已启用路由临时生效，原生 subagent 仍不带模型参数，请使用 delegate_with_policy。'
+      : `候选按宿主当前已启用列表实时显示；会话固化快照 ${authz.frozen} 条仅存记录；池新增与委派仍按发起瞬间实时校验。`);
     else if(!authz.routes.length) diagnostics.push(current.enabled
       ? '当前会话没有官方显式模型选择授权快照，且该会话不满足兜底条件（例如 fork/种子会话）；可使用跟随模式。'
       : '官方子智能体模型选择未启用；当前只能使用跟随模式。');
@@ -286,6 +326,8 @@ export async function apply(ctx) {
     if(libraryConflict?.activeOver) diagnostics.push(`已保存的本会话限制超出宿主并发子智能体数量 ${Math.min(PLUGIN_MAX_ACTIVE,ceilings.maxActive)}；新的启用/保存生效会被拒绝，已启用内容不会自动停用。`);
     if(!ceilings.maxActiveKnown) diagnostics.push(`无法确认宿主并发子智能体数量（${ceilings.maxActiveReason}）；新的限制保存与启用/保存生效会被拒绝，已启用内容继续运行。`);
     return {sessionId:agent.id,rootId:id,inherited:id!==agent.id,revision:record.revision,canEdit:id===agent.id,
+      ...(packageMeta && packageMeta.version ? {version:packageMeta.version} : {}),
+      ...(packageMeta && packageMeta.repository ? {repository:packageMeta.repository} : {}),
       policy:clone(record.policy), candidates:[...catalog.values()].map(row=>clone(row)),ceilings:{maxDepth:ceilings.maxDepth},
       host:ceilings, preview:preview(agent,record,authz),coverage:COVERAGE,
       authorization:{hostEnabled:current.enabled,hostAllowed:current.enabled ? current.allowedModels.length : 0,

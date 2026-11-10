@@ -2,9 +2,9 @@
 
 [简体中文](https://github.com/ChenMuDX/dsh-subagent-model-policy/blob/main/README.md) · English
 
-Author: lez · Version `0.3.0` · Target host DeepSeek Harness `0.2.2-rc.1`.
+Author: lez · Version `0.3.1` · Target host DeepSeek Harness `>=0.2.2-rc.1` (minimum supported) · Node `>=24.12.0`.
 
-> This release uses a numeric version, but the full AC-12 GUI acceptance is still incomplete, and real scenarios such as depth/liveness overflow remain deferred. Do not describe it as fully accepted.
+> This release uses a numeric version. AC-12 GUI interaction acceptance was confirmed by the user in the real `desktop` app (2026-11-09); the header version badge and GitHub link, and the host-default limit values, were confirmed by the user on the same page (2026-11-10). Real depth/liveness overflow and similar boundaries remain deferred. Do not describe it as measured for those boundaries.
 
 Manage the model selection policy for subagents in the current session: candidate model pool, session-level concurrency and recursion limits, and the recorded policy and actual response evidence at creation time. Disabled by default; installing it does not change the main model, other sessions' model selection, or host authorization.
 
@@ -13,12 +13,37 @@ Manage the model selection policy for subagents in the current session: candidat
 Install from the DeepSeek Harness plugin manager:
 
 ```text
-@lienze/dsh-subagent-model-policy@0.3.0
+@lienze/dsh-subagent-model-policy@0.3.1
 ```
 
 After installing or updating, reload the plugin and page the way your Harness does; a source change is not a running instance. If your Harness manages profiles through the CLI, add the same package specifier to that profile.
 
 The `@lienze` scope is the publishing account's scope. Internal identifiers keep the historical `lez-` prefix; this does not affect installation, upgrades or stored data.
+
+## First-time use
+
+Follow these steps for a first complete setup; the sections below remain the source of truth for each behavior.
+
+1. **Install and enable the plugin**: finish installing and enabling `@lienze/dsh-subagent-model-policy@0.3.1` in the host's "Plugins" panel, then reload the plugin and page the way your Harness does.
+
+![The host "Plugins" panel: install, enable and configure plugins](https://raw.githubusercontent.com/ChenMuDX/dsh-subagent-model-policy/main/docs/images/host-plugin-manager.png)
+
+2. **Check the host subagent authorization**: the host's built-in "Subagent" configuration decides the maximum recursion depth, the parallel count ceiling and the models the agent may choose for subagents; this plugin only picks among those host-enabled candidates and never widens host authorization. Confirm both groups of settings on the host side first.
+
+![The host "Subagent" configuration: run limits and model selection](https://raw.githubusercontent.com/ChenMuDX/dsh-subagent-model-policy/main/docs/images/host-subagent-config.png)
+
+3. **Configure candidates and create a policy**: click the "Subagent Model Policy" button in the session title bar, or the entry with the same name in the right sidebar tabs, to open the three-page panel (the policy switch inside starts off; the main model and host authorization are unaffected by installing). On the "Model pool" page tick the candidates allowed into policies and save — this forms the session pool; then on the "Choose strategy" page create a policy — a fixed model picks one from the session pool, agent choice ticks a subset and adds a selection note — and turn the switch on before saving. Set it as the "New-session default" to let new sessions carry it automatically; an enabled policy takes effect on the next main-agent model call.
+
+![The plugin's "Model pool" page: tick candidates to form the session pool](https://raw.githubusercontent.com/ChenMuDX/dsh-subagent-model-policy/main/docs/images/plugin-pool.png)
+
+4. **Delegate and read evidence**: whether to delegate is still decided by the task. After a delegation, the "Execution insights" page shows the policy captured at creation time and the actual response route; `assistant/message` is the actual-response evidence, `request/header` only the intended request route.
+
+### First-use questions
+
+- **Nothing changed after saving**: saving a still-disabled policy only updates the strategy library; new content of an enabled policy takes effect on the next main-agent model call, and already-created subagents keep their creation-time policy.
+- **The expected model is missing**: the pool only shows candidates the host currently allows; enable the model on the host side first — the plugin does not manage API keys or authorization.
+- **A "model mismatch" error at delegation**: under a fixed policy a mismatch fails instead of silently switching; if a native entry is refused because it cannot name the target model, use `delegate_with_policy`.
+- **Switching or stopping a policy**: turn the switch off — the policy is kept, the main model does not change and already-created subagents are not terminated; the enabled policy and the source of the "New-session default" must be closed or changed before deletion.
 
 ## Entry points
 
@@ -71,7 +96,7 @@ Local creations through native `subagent`, `subagent_fork`, `workflow` and `spaw
 - Covers the strategy library, model pool, defaults and session limits inside the current session; no cross-session shared library and no project-level defaults.
 - Does not modify host authorization, the main model, official profile configuration or native tool parameters.
 - After the host revokes authorization, subsequent requests of already-bound sub-agents are refused by the host; the plugin does not fall back silently.
-- The pre-release has not completed full AC-12 GUI acceptance; real depth/liveness overflow, complete legacy data migration and strategy-version switching remain deferred. Passing synthetic tests does not mean these scenarios were measured.
+- AC-12 GUI interaction acceptance was confirmed by the user in the real `desktop` app; real depth/liveness overflow, complete legacy data migration and strategy-version switching remain deferred. Passing synthetic tests does not mean these scenarios were measured.
 
 ## Uninstall
 

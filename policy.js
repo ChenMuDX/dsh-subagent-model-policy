@@ -90,7 +90,7 @@ export function renderContext(record, {depth=0, ceiling=1, authorized=[], native
   if (!p.enabled) return '';
   const keys = new Set(authorized.map(routeKey));
   const candidates = p.models.filter(r => keys.has(routeKey(r)));
-  const sourceLine = authorizationSource === 'host' ? '候选来源=宿主当前授权（本会话未固化快照，固定/自选仅约束通过本插件创建的委派）'
+  const sourceLine = authorizationSource === 'host' ? '候选来源=宿主当前授权（候选按宿主已启用列表实时显示；固定/自选仍按发起瞬间实时校验）'
     : authorizationSource === 'session' ? '候选来源=本会话官方授权快照'
     : authorizationSource === 'none' ? '候选来源=无（本会话未获得官方模型选择授权）' : '';
   return [
