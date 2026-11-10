@@ -69,9 +69,11 @@ window.__ModuleLoader__.load({
       maxDepth: 'Maximum recursion depth', maxActive: 'Concurrent subagents',
       depthHint: '0–{max}; 0 disables further delegation', depthHintHost: '0–{max} (Host value); 0 disables further delegation',
       activeHint: '1–{max} (Host ceiling {host})', activeHintHost: '1–{max} (Host value)', activeHintUnknown: 'Unavailable while the Host concurrent-subagent ceiling cannot be read.',
-      savedLimits: 'Saved: depth {depth} · concurrency {active}', noSavedLimits: 'No session limits saved yet.',
+      savedLimits: 'Saved: depth {depth} · concurrency {active}', noSavedLimits: 'No session limits saved; no session limit is attached, and enabling does not require saving one.',
       effectiveActive: 'Upper bound while enabled: depth {depth} · concurrency {active} (session limit {local}; Host ceiling {host}).',
       effectiveUnknown: 'Upper bound while enabled: depth {depth} · concurrency {active}; the Host concurrent-subagent ceiling is currently unknown and cannot be verified. The Host still enforces its own capacity.',
+      effectiveHostOnly: 'Active: no session limits attached; only the Host limits apply (depth {depth} · concurrency {active}).',
+      effectiveHostOnlyUnknown: 'Active: no session limits attached; the Host concurrent-subagent ceiling is currently unavailable, and the Host still enforces its own capacity.',
       effectiveClosed: 'Currently closed: session limits do not intervene; only Host limits apply.', limitsDirty: 'Unsaved limit changes; they take effect only after saving.',
       saveLimits: 'Save session limits', discardLimits: 'Discard limit changes', limitError: 'Correct the marked limits before saving.',
       errDepth: 'Depth must be an integer from 0 through {max}.', errActive: 'Concurrent subagents must be an integer from 1 through {max}.',
@@ -81,6 +83,11 @@ window.__ModuleLoader__.load({
       noDefault: 'Choose a strategy in the strategy pool.',
       defaultSummary: 'Set to “{name}” · {type}', defaultLimitsInline: ' · depth {depth} · concurrency {active}',
       defaultConflict: 'The limits stored with the default (depth {depth} · concurrency {active}) exceed the current Host ceiling (depth {ceilingDepth} · concurrency {ceilingActive}): adjust before use. The original values are kept and are not widened automatically.',
+      defaultUnauthorized: 'The new-session default contains models the Host no longer authorizes: {models}. New sessions skip these models; the default itself is unchanged. Update or clear the default to remove this warning.',
+      defaultUnavailable: 'The new-session default references models the Host currently reports as unavailable: {models}. Availability can change and does not block import; new sessions still import them and they can be used after recovery, and the default itself is unchanged.',
+      defaultSkipped: 'This new session skipped {count} default model(s) the Host no longer authorizes: {models}. The default itself is unchanged.',
+      defaultSkippedCovered: 'This new session skipped {count} default model(s) the Host no longer authorizes (listed under the new-session default above). The default itself is unchanged.',
+      listSeparator: ', ',
       defaultLimitsUnknown: 'The stored concurrency limit cannot be verified while the Host concurrent-subagent ceiling is unavailable.',
       warningNoDefaultRestore: 'Choose a strategy card and click “Set as new-session default” first.',
       warningNoActiveRestore: 'Choose and enable a strategy in the strategy pool first.',
@@ -102,7 +109,7 @@ window.__ModuleLoader__.load({
       deleteConfirm: 'Delete “{name}”? This does not affect the current session.',
     };
     const zh = {
-      title: '子智能体模型选择策略', open: '打开子智能体模型选择策略', description: '当前会话内的策略、候选池与并发递归限制。',
+      title: '子智能体模型策略', open: '打开子智能体模型策略', description: '当前会话内的策略、候选池与并发递归限制。',
       versionLabel: '包版本号：{version}', repoLink: 'GitHub', repoLinkLabel: 'GitHub 仓库：{repo}（在新标签页打开）',
       scope: '当前会话', loading: '正在读取…', saving: '正在保存…', refreshing: '正在刷新…', busy: '处理中…',
       refresh: '刷新服务端状态', cancel: '取消等待', retry: '重试读取', error: '请求失败', serverError: '宿主未返回结果。',
@@ -162,9 +169,11 @@ window.__ModuleLoader__.load({
       maxDepth: '最大递归深度', maxActive: '并发子智能体数量',
       depthHint: '0–{max}；0 表示不再向下委派', depthHintHost: '0–{max}（宿主值）；0 表示不再向下委派',
       activeHint: '1–{max}（宿主上限 {host}）', activeHintHost: '1–{max}（宿主值）', activeHintUnknown: '当前无法读取宿主并发子智能体数量上限，暂不能保存本会话限制。',
-      savedLimits: '已保存：深度 {depth} · 并发 {active}', noSavedLimits: '尚未保存本会话限制。',
+      savedLimits: '已保存：深度 {depth} · 并发 {active}', noSavedLimits: '尚未保存本会话限制；不附加本会话限制，启用时无需保存。',
       effectiveActive: '启用后有效上界：深度 {depth} · 并发 {active}（本会话限制 {local}；宿主上限 {host}）。',
       effectiveUnknown: '启用后有效上界：深度 {depth} · 并发 {active}；当前无法读取或校验宿主并发子智能体数量上限，宿主仍独立执行自身容量限制。',
+      effectiveHostOnly: '生效中：未附加本会话限制，仅宿主限制生效（深度 {depth} · 并发 {active}）。',
+      effectiveHostOnlyUnknown: '生效中：未附加本会话限制；当前无法读取宿主并发子智能体数量上限，宿主仍独立执行自身容量限制。',
       effectiveClosed: '当前未启用：本会话附加限制不介入，仅宿主限制生效。', limitsDirty: '有未保存的限制修改；保存前不生效。',
       saveLimits: '保存本会话限制', discardLimits: '放弃限制修改', limitError: '请修正标记的限制后再保存。',
       errDepth: '最大递归深度需为 0–{max} 的整数。', errActive: '并发子智能体数量需为 1–{max} 的整数。',
@@ -174,6 +183,11 @@ window.__ModuleLoader__.load({
       noDefault: '请在策略池中进行选择。',
       defaultSummary: '已设置「{name}」· {type}', defaultLimitsInline: ' · 深度 {depth} · 并发 {active}',
       defaultConflict: '默认内容保存的限制（深度 {depth} · 并发 {active}）超出当前宿主上限（深度 {ceilingDepth} · 并发 {ceilingActive}）：需调整后使用；原值保留，不会自动放宽。',
+      defaultUnauthorized: '新会话默认包含宿主已不再授权的模型：{models}。新会话会跳过这些模型；默认内容保持不变。请更新或清除默认以消除提示。',
+      defaultUnavailable: '新会话默认引用的模型当前不可用：{models}。可用性可能恢复，不阻止导入；新会话仍会导入这些模型，恢复后可启用，默认内容保持不变。',
+      defaultSkipped: '本次新会话已跳过 {count} 个默认模型（宿主已不再授权）：{models}。默认内容保持不变。',
+      defaultSkippedCovered: '本次新会话已跳过 {count} 个默认模型（宿主已不再授权，名称见上方新会话默认提示）。默认内容保持不变。',
+      listSeparator: '、',
       defaultLimitsUnknown: '当前无法读取宿主并发子智能体数量上限，默认内容的并发限制无法校验。',
       warningNoDefaultRestore: '请先在策略卡片上点「设为新会话默认」。',
       warningNoActiveRestore: '请先在策略池选择一份策略并启用。',
@@ -285,6 +299,38 @@ window.__ModuleLoader__.load({
     // @lez-pure-start
     const keyOf = (route) => JSON.stringify([route && route.provider, route && route.model]);
     const routeLabel = (route) => route && route.provider && route.model ? route.provider + '/' + route.model : '';
+    // Host issue lists ({provider, model, name?}) are optional and may be absent on
+    // older Hosts; malformed entries are ignored so a bad row cannot break a render.
+    function routeName(route) {
+      if (!route || typeof route.provider !== 'string' || typeof route.model !== 'string') return '';
+      const name = typeof route.name === 'string' ? route.name.trim() : '';
+      if (name) return route.provider ? `${name} (${route.provider})` : name;
+      return routeLabel(route);
+    }
+    function routeList(routes, separator = ', ') {
+      const seen = new Set();
+      const names = [];
+      for (const route of Array.isArray(routes) ? routes : []) {
+        if (!route || typeof route.provider !== 'string' || typeof route.model !== 'string') continue;
+        const key = keyOf(route);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const name = routeName(route);
+        if (name) names.push(name);
+      }
+      return names.join(separator);
+    }
+    function conflictRoutes(defaultSetting) {
+      const conflict = defaultSetting && defaultSetting.modelConflict;
+      const pick = (value) => (Array.isArray(value) ? value : []).filter((route) => route && typeof route.provider === 'string' && typeof route.model === 'string');
+      return conflict && typeof conflict === 'object'
+        ? {unauthorized: pick(conflict.unauthorized), unavailable: pick(conflict.unavailable)}
+        : {unauthorized: [], unavailable: []};
+    }
+    function skippedRoutes(management) {
+      const skipped = management && management.initialized && management.initialized.skipped;
+      return (Array.isArray(skipped) ? skipped : []).filter((route) => route && typeof route.provider === 'string' && typeof route.model === 'string');
+    }
     const sameRoute = (left, right) => !!left && !!right && left.provider === right.provider && left.model === right.model;
     const sameRouteSet = (left, right) => {
       const a = left instanceof Set ? left : new Set(left || []);
@@ -329,6 +375,15 @@ window.__ModuleLoader__.load({
         typeof value === 'object' && Array.isArray(value.efforts)
         && (value.defaultEffort === undefined || typeof value.defaultEffort === 'string')
         && value.efforts.every((effort) => effort && typeof effort.id === 'string' && typeof effort.name === 'string'));
+      // Newer Hosts add {provider, model, name?} issue rows and a reason string on
+      // skipped rows. Both fields stay optional so older Host snapshots remain valid.
+      const validIssue = (value, withReason) => Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+        && typeof value.provider === 'string' && value.provider.length > 0
+        && typeof value.model === 'string' && value.model.length > 0
+        && (value.name === undefined || value.name === null || typeof value.name === 'string')
+        && (!withReason || value.reason === undefined || value.reason === null || typeof value.reason === 'string');
+      const validIssues = (value, withReason) => value === undefined || value === null
+        || (Array.isArray(value) && value.every((entry) => validIssue(entry, withReason)));
       if (!whole(snap.revision) || typeof snap.canEdit !== 'boolean' || typeof snap.preview !== 'string') throw new Error('bad-snapshot');
       // Package metadata is additive: older Host snapshots omit it entirely.
       if (snap.version !== undefined && typeof snap.version !== 'string') throw new Error('bad-snapshot');
@@ -337,6 +392,10 @@ window.__ModuleLoader__.load({
       if (!policy || typeof policy.enabled !== 'boolean' || !['inherit', 'fixed', 'auto'].includes(policy.mode) || !Array.isArray(policy.models)) throw new Error('bad-snapshot');
       const management = snap.management;
       if (!management || typeof management !== 'object' || !Array.isArray(management.strategies) || !Array.isArray(management.pool)) throw new Error('bad-snapshot');
+      if (management.initialized !== undefined && management.initialized !== null) {
+        if (typeof management.initialized !== 'object' || Array.isArray(management.initialized)
+          || !validIssues(management.initialized.skipped, true)) throw new Error('bad-snapshot');
+      }
       for (const strategy of management.strategies) {
         if (!strategy || typeof strategy.id !== 'string' || typeof strategy.name !== 'string'
           || !['fixed', 'auto', 'inherit'].includes(strategy.type) || !Number.isSafeInteger(strategy.version)
@@ -351,6 +410,11 @@ window.__ModuleLoader__.load({
       }
       const fallback = snap.defaultSetting;
       if (!fallback || !whole(fallback.revision) || !(fallback.snapshot === null || typeof fallback.snapshot === 'object')) throw new Error('bad-snapshot');
+      if (fallback.modelConflict !== undefined && fallback.modelConflict !== null) {
+        const modelConflict = fallback.modelConflict;
+        if (typeof modelConflict !== 'object' || Array.isArray(modelConflict)
+          || !validIssues(modelConflict.unauthorized, false) || !validIssues(modelConflict.unavailable, false)) throw new Error('bad-snapshot');
+      }
       if (fallback.snapshot) {
         if (typeof fallback.snapshot.name !== 'string' || !['fixed', 'auto'].includes(fallback.snapshot.type) || !Array.isArray(fallback.snapshot.models)) throw new Error('bad-snapshot');
       }
@@ -367,10 +431,10 @@ window.__ModuleLoader__.load({
 
     function PolicyIcon({ size = 20 } = {}) {
       return h('svg', { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true },
-        h('rect', { x: 8, y: 2.5, width: 8, height: 5, rx: 1.5 }),
-        h('path', { d: 'M12 7.5v4m-7 4v-4h14v4' }),
-        h('rect', { x: 1.5, y: 15.5, width: 7, height: 5, rx: 1.5 }),
-        h('rect', { x: 15.5, y: 15.5, width: 7, height: 5, rx: 1.5 }));
+        h('rect', { x: 8.3, y: 2, width: 7.4, height: 6.5, rx: 1.3 }),
+        h('path', { d: 'M9.8 1v1m4.4-1v1M9.8 8.5v1m4.4-1v1M12 9.5v1.2' }),
+        h('rect', { x: 5.4, y: 11.5, width: 13.2, height: 9.3, rx: 2.6 }),
+        h('path', { d: 'M9.5 15.7v.4m5-.4v.4' }));
     }
 
     return {
@@ -996,6 +1060,22 @@ window.__ModuleLoader__.load({
                 + (valueLimits ? fmt(t('defaultLimitsInline'), { depth: valueLimits.maxDepth, active: valueLimits.maxActive }) : '')
               : t('noDefault');
             const defaultConflict = Boolean(valueLimits && (valueLimits.maxDepth > snap.host.maxDepth || (capacity.known && valueLimits.maxActive > capacity.raw)));
+            // The Host computes these from the stored default and the live
+            // authorization/availability lists; the panel only reports them and
+            // adds no action of its own.
+            const modelConflict = conflictRoutes(snap.defaultSetting);
+            const skipped = skippedRoutes(snap.management);
+            const coveredByConflict = new Set(modelConflict.unauthorized.map(keyOf));
+            const uncoveredSkipped = skipped.filter((route) => !coveredByConflict.has(keyOf(route)));
+            // De-duplication rule: a model already named by the default warning is
+            // not named again in the skipped banner; the skipped banner then points
+            // at the warning above. Models only recorded as skipped keep their names.
+            const skippedNames = modelConflict.unauthorized.length ? uncoveredSkipped : skipped;
+            const skippedText = skipped.length
+              ? (skippedNames.length
+                ? fmt(t('defaultSkipped'), { count: skipped.length, models: routeList(skippedNames, t('listSeparator')) })
+                : fmt(t('defaultSkippedCovered'), { count: skipped.length }))
+              : '';
             return h(React.Fragment, null,
               h('section', { className: 'lezsp-status', 'aria-labelledby': idFor('sessionTitle') },
                 h('div', { className: 'lezsp-between lezsp-row' },
@@ -1009,7 +1089,13 @@ window.__ModuleLoader__.load({
                   h('h2', { id: idFor('defaultTitle'), tabIndex: -1 }, t('defaultTitle')),
                   switchControl('defaultToggle', Boolean(defaultValue), !editable, defaultValue ? t('defaultLabelOn') : t('defaultLabelOff'), toggleDefault)),
                 h('p', null, defaultText),
-                defaultConflict ? banner(fmt(t('defaultConflict'), { depth: valueLimits.maxDepth, active: valueLimits.maxActive, ceilingDepth: snap.host.maxDepth, ceilingActive: capacity.known ? capacity.raw : '—' }), 'warn') : null),
+                defaultConflict ? banner(fmt(t('defaultConflict'), { depth: valueLimits.maxDepth, active: valueLimits.maxActive, ceilingDepth: snap.host.maxDepth, ceilingActive: capacity.known ? capacity.raw : '—' }), 'warn') : null,
+                modelConflict.unauthorized.length
+                  ? banner(fmt(t('defaultUnauthorized'), { models: routeList(modelConflict.unauthorized, t('listSeparator')) }), 'warn')
+                  : modelConflict.unavailable.length
+                    ? banner(fmt(t('defaultUnavailable'), { models: routeList(modelConflict.unavailable, t('listSeparator')) }), 'warn')
+                    : null),
+              skippedText ? banner(skippedText, 'warn') : null,
               hostCapacityNotice(),
               savedLimitsOver && capacity.known ? banner(fmt(t('hostLimitBlocked'), { depth: savedLimits.maxDepth, active: savedLimits.maxActive, ceilingDepth: snap.host.maxDepth, ceilingActive: capacity.raw }) + (active ? t('hostConflictActive') : ''), 'warn') : null,
               h('div', { className: 'lezsp-section-head' },
@@ -1178,10 +1264,14 @@ window.__ModuleLoader__.load({
                       ? (hostDefaultsShown ? fmt(t('activeHintHost'), { max: limitMaxActive }) : fmt(t('activeHint'), { max: limitMaxActive, host: capacity.raw }))
                       : t('activeHintUnknown')))),
                 h('p', { className: 'lezsp-muted' }, limits ? fmt(t('savedLimits'), { depth: limits.maxDepth, active: limits.maxActive }) : t('noSavedLimits')),
-                h('p', { className: 'lezsp-muted' }, active && limits
-                  ? (capacity.known
-                    ? fmt(t('effectiveActive'), { depth: effectiveDepth, active: Math.min(limits.maxActive, capacity.ceiling), local: limits.maxActive, host: capacity.raw })
-                    : fmt(t('effectiveUnknown'), { depth: limits.maxDepth, active: limits.maxActive }))
+                h('p', { className: 'lezsp-muted' }, active
+                  ? (limits
+                    ? (capacity.known
+                      ? fmt(t('effectiveActive'), { depth: effectiveDepth, active: Math.min(limits.maxActive, capacity.ceiling), local: limits.maxActive, host: capacity.raw })
+                      : fmt(t('effectiveUnknown'), { depth: limits.maxDepth, active: limits.maxActive }))
+                    : (capacity.known
+                      ? fmt(t('effectiveHostOnly'), { depth: snap.host.maxDepth, active: capacity.ceiling })
+                      : t('effectiveHostOnlyUnknown')))
                   : t('effectiveClosed')),
                 limitDirty ? banner(t('limitsDirty'), 'warn') : null,
                 conflict ? banner(fmt(t('hostConflict'), { depth: limits.maxDepth, active: limits.maxActive, ceilingDepth: snap.host.maxDepth, ceilingActive: capacity.known ? capacity.raw : '—' }) + (active ? t('hostConflictActive') : ''), 'warn') : null,

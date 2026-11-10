@@ -2,9 +2,9 @@
 
 [简体中文](https://github.com/ChenMuDX/dsh-subagent-model-policy/blob/main/README.md) · English
 
-Author: lez · Version `0.3.1` · Target host DeepSeek Harness `>=0.2.2-rc.1` (minimum supported) · Node `>=24.12.0`.
+Author: lez · Version `0.3.2` · Target host DeepSeek Harness `>=0.2.2-rc.1` (minimum supported) · Node `>=24.12.0`.
 
-> This release uses a numeric version. AC-12 GUI interaction acceptance was confirmed by the user in the real `desktop` app (2026-11-09); the header version badge and GitHub link, and the host-default limit values, were confirmed by the user on the same page (2026-11-10). Real depth/liveness overflow and similar boundaries remain deferred. Do not describe it as measured for those boundaries.
+> This release uses a numeric version. AC-12 GUI interaction acceptance was confirmed by the user in the real `desktop` app (2026-11-09); the header version badge and GitHub link, and the host-default limit values, were confirmed by the user on the same page (2026-11-10); the 0.3.2 icon and Chinese display name, enabling without saved limits, and filtering imported defaults by host authorization were also confirmed by the user (2026-11-10). Real depth/liveness overflow and similar boundaries remain deferred. Do not describe it as measured for those boundaries.
 
 Manage the model selection policy for subagents in the current session: candidate model pool, session-level concurrency and recursion limits, and the recorded policy and actual response evidence at creation time. Disabled by default; installing it does not change the main model, other sessions' model selection, or host authorization.
 
@@ -13,7 +13,7 @@ Manage the model selection policy for subagents in the current session: candidat
 Install from the DeepSeek Harness plugin manager:
 
 ```text
-@lienze/dsh-subagent-model-policy@0.3.1
+@lienze/dsh-subagent-model-policy@0.3.2
 ```
 
 After installing or updating, reload the plugin and page the way your Harness does; a source change is not a running instance. If your Harness manages profiles through the CLI, add the same package specifier to that profile.
@@ -24,7 +24,7 @@ The `@lienze` scope is the publishing account's scope. Internal identifiers keep
 
 Follow these steps for a first complete setup; the sections below remain the source of truth for each behavior.
 
-1. **Install and enable the plugin**: finish installing and enabling `@lienze/dsh-subagent-model-policy@0.3.1` in the host's "Plugins" panel, then reload the plugin and page the way your Harness does.
+1. **Install and enable the plugin**: finish installing and enabling `@lienze/dsh-subagent-model-policy@0.3.2` in the host's "Plugins" panel, then reload the plugin and page the way your Harness does.
 
 ![The host "Plugins" panel: install, enable and configure plugins](https://raw.githubusercontent.com/ChenMuDX/dsh-subagent-model-policy/main/docs/images/host-plugin-manager.png)
 
@@ -71,6 +71,7 @@ The "Subagent Model Policy" button in the session title bar, or the entry with t
 - "Refresh candidates" drops candidates that became invalid at the moment of the request and cleans their stale references in policies; the currently enabled content stays protected.
 - Model rows show the thinking levels and ability cards provided by the host; when the host provides none, no level names are guessed.
 - Concurrent subagent count and maximum recursion depth are shared session settings and do not change when switching policies; actual delegation is constrained by both the host ceiling and this session's limits.
+- With no saved session limits, the Host limits apply and no save is required before enabling; saved limits remain a stricter upper bound.
 - Saving an enabled policy, enabling a policy and saving limits share the host capacity gate; when host capacity cannot be read, writes are refused with the reason and the enabled content is preserved.
 
 ## Agent tools
@@ -105,3 +106,5 @@ Disable or remove the bundle through the Harness plugin manager. Stored session 
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+[![Listed on dsh-plugin.org](https://dsh-plugin.org/badges/listed.svg)](https://dsh-plugin.org/plugins/chenmudx/dsh-subagent-model-policy)

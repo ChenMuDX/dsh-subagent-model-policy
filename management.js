@@ -15,7 +15,10 @@ export const MAX_TEXT = 2000;
 export const MAX_PURPOSE = 500;
 export const MAX_NOTE = 500;
 export const PLUGIN_MAX_ACTIVE = 32;
+export const MAX_SKIPPED = 24;
 export const STRATEGY_TYPES = Object.freeze(['fixed', 'auto']);
+// Why a saved default route was not imported into a brand-new session.
+export const SKIP_REASONS = Object.freeze(['unauthorized', 'fixed-target-unauthorized']);
 export const LEGACY_STRATEGY_ID = 'legacy';
 export const LEGACY_INHERIT_ID = 'legacy-inherit';
 
@@ -161,6 +164,40 @@ function readModelsInfo(raw, field = '模型说明') {
   });
 }
 
+/**
+ * Sanitize one skipped-import record. `initialized.skipped` is diagnostic
+ * metadata, so an unreadable entry is dropped instead of making an otherwise
+ * valid library unreadable; an old record simply has no `skipped` at all.
+ */
+function readSkippedEntry(raw) {
+  if (!isObject(raw)) return null;
+  if (!SKIP_REASONS.includes(raw.reason)) return null;
+  const provider = typeof raw.provider === 'string' ? raw.provider.trim().slice(0, 200) : '';
+  const model = typeof raw.model === 'string' ? raw.model.trim().slice(0, 200) : '';
+  if (!provider || !model) return null;
+  const name = typeof raw.name === 'string' ? raw.name.trim().slice(0, MAX_NAME) : '';
+  return { provider, model, ...(name ? { name } : {}), reason: raw.reason };
+}
+
+function readSkipped(raw) {
+  if (!Array.isArray(raw)) return [];
+  const skipped = [];
+  for (const item of raw) {
+    if (skipped.length >= MAX_SKIPPED) break;
+    const entry = readSkippedEntry(item);
+    if (entry) skipped.push(entry);
+  }
+  return skipped;
+}
+
+/** Build one sanitized skipped-import record from a route plus an optional name. */
+function skippedRecord(route, name, reason) {
+  const provider = typeof route?.provider === 'string' ? route.provider.trim().slice(0, 200) : '';
+  const model = typeof route?.model === 'string' ? route.model.trim().slice(0, 200) : '';
+  const label = typeof name === 'string' ? name.trim().slice(0, MAX_NAME) : '';
+  return { provider, model, ...(label ? { name: label } : {}), reason };
+}
+
 function readLimits(raw, field = '会话限制') {
   if (raw === null || raw === undefined) return null;
   if (!isObject(raw)) fail(`${field} 必须是对象`);
@@ -226,6 +263,11 @@ export function readLibrary(raw) {
       defaultRevision: Number.isSafeInteger(raw.initialized.defaultRevision) ? raw.initialized.defaultRevision : null,
       source: raw.initialized.source === 'default' ? 'default' : 'none',
     };
+    // Additive and optional: `skipped` records default routes the Host did not
+    // authorize at import time. Records written before it existed stay valid and
+    // an empty list is never persisted as a field.
+    const skipped = readSkipped(raw.initialized.skipped);
+    if (skipped.length) initialized.skipped = skipped;
   }
   const legacyPolicy = isObject(raw.legacyPolicy) ? clone(raw.legacyPolicy) : undefined;
   return { version: LIBRARY_VERSION, strategies, pool, limits: readLimits(raw.limits), active, initialized, legacyPolicy };
@@ -497,6 +539,25 @@ export function assertStrategyNameFree(library, name, selfId) {
   return true;
 }
 
+/**
+ * Validate a strategy before it becomes the new-session default. It must only
+ * reference the session pool, and - when the Host's live authorization is
+ * readable - every referenced route must be exactly authorized, because a new
+ * session can only be born inside that allow-list. Availability is transient
+ * (it changes between sessions) and limits do not belong to this gate, so
+ * neither is checked here; they are handled when the new session imports.
+ */
+export function validateDefaultRefs(strategy, pool, { authorized = null } = {}) {
+  const stale = stalePoolRefs(strategy, pool);
+  if (stale.length) fail(`策略引用的模型不在会话池（${stale.map((route) => `${route.provider}/${route.model}`).join('、')}）；请先调整策略`);
+  if (Array.isArray(authorized)) {
+    const keys = new Set(authorized.map(routeKey));
+    const denied = (strategy.models || []).filter((route) => !keys.has(routeKey(route)));
+    if (denied.length) fail(`新会话默认引用的模型未获当前宿主授权：${denied.map((route) => `${route.provider}/${route.model}`).join('、')}`);
+  }
+  return true;
+}
+
 /** Shared gate for enabling a strategy and for saving the enabled strategy. */
 export function validateForUse(strategy, pool, limits, { authorized, available, ceiling, hostActive = null, hostActiveKnown = false, hostActiveReason }) {
   const stale = stalePoolRefs(strategy, pool);
@@ -508,11 +569,18 @@ export function validateForUse(strategy, pool, limits, { authorized, available, 
     if (!auth.has(key)) fail(`模型未获当前宿主授权：${route.provider}/${route.model}`);
     if (!avail.has(key)) fail(`模型当前不可用：${route.provider}/${route.model}`);
   }
-  if (!limits) fail('本会话尚未保存委派限制；请先在模型池保存后再启用或保存生效');
-  if (!Number.isSafeInteger(limits.maxDepth) || limits.maxDepth < 0 || limits.maxDepth > Math.min(32, ceiling)) {
-    fail(`已保存的最大递归深度 ${limits?.maxDepth} 超出宿主上限 ${Math.min(32, ceiling)}；请先在模型池调整并保存`);
+  // No saved local limits means the session inherits the Host limits: enabling a
+  // strategy must not require a save just to persist the Host default values.
+  // A saved local limit still has to fit the live Host capacity, and an unknown
+  // Host capacity still rejects new enable/save-of-enabled writes as before.
+  if (limits) {
+    if (!Number.isSafeInteger(limits.maxDepth) || limits.maxDepth < 0 || limits.maxDepth > Math.min(32, ceiling)) {
+      fail(`已保存的最大递归深度 ${limits?.maxDepth} 超出宿主上限 ${Math.min(32, ceiling)}；请先在模型池调整并保存`);
+    }
+    assertHostActive(limits.maxActive, { maxActive: hostActive, maxActiveKnown: hostActiveKnown, maxActiveReason: hostActiveReason });
+  } else if (!hostActiveKnown) {
+    fail(`无法确认宿主并发子智能体数量${hostActiveReason ? `（${hostActiveReason}）` : ''}；已拒绝保存/启用`);
   }
-  assertHostActive(limits.maxActive, { maxActive: hostActive, maxActiveKnown: hostActiveKnown, maxActiveReason: hostActiveReason });
   // A legacy fixed strategy may keep several candidates; its target is not
   // required to be the first route, only to be present.
   if (strategy.type === 'fixed' && !strategy.models.some((route) => sameRoute(route, { provider: strategy.fixedProvider, model: strategy.fixedModel }))) fail('固定模型必须来自策略中选择的模型');
@@ -561,12 +629,69 @@ export function defaultFromStrategy(strategy, pool, limits, { now = Date.now(), 
   };
 }
 
-/** Import the default into a brand-new root: independent copy, never auto-enabled. */
-export function importDefault(value, { now = Date.now(), id, defaultRevision = null } = {}) {
+/**
+ * Import the default into a brand-new root: independent copy, never auto-enabled.
+ *
+ * `authorized` is the Host's live allow-list for the session being created, or
+ * `null` when it cannot be read. `null` keeps the historical import exactly as
+ * recorded, because there is nothing to filter against. An array narrows the
+ * import: a default captured earlier may name a model the Host has revoked
+ * since, and a new session must never be born referencing it.
+ *
+ * A fixed strategy is all-or-nothing on its routing target: if that target is
+ * not authorized, no strategy and no pool are imported (the saved limits are
+ * still copied) and every dropped route is recorded. An auto strategy keeps its
+ * authorized subset and closes the same way when nothing remains.
+ */
+export function importDefault(value, { now = Date.now(), id, defaultRevision = null, authorized = null } = {}) {
   if (!id) fail('导入默认缺少策略 id');
   if (value.type === 'inherit') fail('默认内容不能是跟随类型');
-  const models = value.models.map(routeOf);
-  const pool = (value.modelsInfo || []).map((info) => ({
+  const allModels = value.models.map(routeOf);
+  const infos = Array.isArray(value.modelsInfo) ? value.modelsInfo : [];
+  const keys = Array.isArray(authorized) ? new Set(authorized.map(routeKey)) : null;
+  const permitted = (route) => keys === null || keys.has(routeKey(route));
+  const names = new Map();
+  for (const info of infos) {
+    if (typeof info?.name === 'string' && info.name.trim()) names.set(routeKey(info), info.name.trim());
+  }
+  // Dropped routes in a stable order: models first, then modelsInfo-only routes.
+  const dropped = [];
+  const droppedKeys = new Set();
+  for (const route of allModels) {
+    const key = routeKey(route);
+    if (permitted(route) || droppedKeys.has(key)) continue;
+    droppedKeys.add(key);
+    dropped.push(route);
+  }
+  for (const info of infos) {
+    const key = routeKey(info);
+    if (permitted(info) || droppedKeys.has(key)) continue;
+    droppedKeys.add(key);
+    dropped.push(routeOf(info));
+  }
+  const models = keys === null ? allModels : allModels.filter(permitted);
+  const target = value.type === 'fixed' ? { provider: value.fixedProvider, model: value.fixedModel } : null;
+  const targetLost = !!target && keys !== null && !models.some((route) => sameRoute(route, target));
+  const closed = targetLost || (keys !== null && models.length === 0);
+  // The default remains the recorded source even when nothing could be imported;
+  // `skipped` is what tells a reader why the library starts empty.
+  const initialized = { at: now, defaultRevision, source: 'default' };
+  const reason = targetLost ? 'fixed-target-unauthorized' : 'unauthorized';
+  const skipped = dropped
+    .slice(0, MAX_SKIPPED)
+    .map((route) => skippedRecord(route, names.get(routeKey(route)), reason));
+  if (skipped.length) initialized.skipped = skipped;
+  if (closed) {
+    return {
+      version: LIBRARY_VERSION,
+      strategies: [],
+      pool: [],
+      limits: value.limits ? clone(value.limits) : null,
+      active: null,
+      initialized,
+    };
+  }
+  const pool = infos.filter(permitted).map((info) => ({
     provider: info.provider,
     model: info.model,
     purpose: info.purpose || '',
@@ -596,7 +721,7 @@ export function importDefault(value, { now = Date.now(), id, defaultRevision = n
     pool,
     limits: value.limits ? clone(value.limits) : null,
     active: null,
-    initialized: { at: now, defaultRevision, source: 'default' },
+    initialized,
   };
 }
 

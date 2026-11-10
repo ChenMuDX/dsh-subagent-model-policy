@@ -7,6 +7,7 @@ import {
   snapshotForStrategy, sameSnapshotContent, sameStrategyContent, readStrategyDraft,
   readPoolEntries, validateStrategyRefs, assertStrategyNameFree, validateForUse,
   validatePoolSave, planPoolSync, defaultFromStrategy, importDefault, strategyNeedsAdjust,
+  validateDefaultRefs,
   limitsConflict, readRoutes, LEGACY_STRATEGY_ID, LEGACY_INHERIT_ID,
   assertHostActive, PLUGIN_MAX_ACTIVE, refreshSnapshotInfo,
 } from './management.js';
@@ -170,6 +171,20 @@ export async function applyWithPackageMeta(ctx, packageMeta) {
     return {source:'none', frozen:null, routes:[]};
   }
   function officialRoutes(agent, current) { return authorization(agent, current).routes; }
+  // The live selection read must never break a read or a brand-new session: an
+  // unavailable or malformed value simply means "no live allow-list here".
+  function currentSelection() {
+    try {
+      const value=ctx.subagentModelSelection.current();
+      return value && typeof value === 'object' ? value : null;
+    } catch { return null; }
+  }
+  // `null` means the Host selection is disabled, so no authorization filter
+  // applies; an enabled selection with no readable list authorizes nothing.
+  function liveAuthorized(selection) {
+    if(selection?.enabled!==true) return null;
+    return Array.isArray(selection.allowedModels) ? selection.allowedModels : [];
+  }
   function baseline(agent) {
     const h=session(agent)?.requestHeader()?.config;
     return h ? {provider:h.provider,model:h.model} : {provider:agent.options?.provider,model:agent.options?.model};
@@ -236,24 +251,56 @@ export async function applyWithPackageMeta(ctx, packageMeta) {
     return {efforts,defaultEffort:efforts.some(row=>row.id===wanted)?wanted:''};
   }
   const noReasoning=()=>({efforts:[],defaultEffort:''});
-  // Resolve display names/availability for every route this session knows about.
-  async function modelCatalog(agent, library, authz, signal) {
-    const routes=new Map();
-    const add=list=>{for(const route of list||[]) if(route?.provider && route?.model) routes.set(routeKey(route),{provider:route.provider,model:route.model});};
-    add(authz.routes); add(library?.pool); add(library?.strategies?.flatMap(s=>s.models)); add(library?.active?.snapshot?.models);
-    const allowed=new Set(authz.routes.map(routeKey));
+  // Resolve one route through the Host's own catalog. A failing or unregistered
+  // resolve is reported as unavailable, never guessed; callers keep whichever
+  // fallback name (model id, pool name or recorded default name) they hold.
+  function routeResolver(signal) {
     const registered=new Set(ctx.llm.listProviders().map(p=>p.id));
-    await Promise.all([...routes.values()].map(async route=>{
-      const key=routeKey(route); const row={...route,name:route.model,description:'',authorized:allowed.has(key),available:false,reasoning:noReasoning()};
+    return async route=>{
+      const row={provider:route.provider,model:route.model,name:route.model,description:'',authorized:false,available:false,reasoning:noReasoning()};
       try {
         if(!registered.has(route.provider)) throw new Error('unregistered');
         const info=await ctx.llm.resolveModelInfo(route.provider,route.model,signal);
         row.name=info?.name || route.model; row.description=info?.description ?? ''; row.available=true;
         row.reasoning=reasoningOf(info);
       } catch { row.available=false; }
-      routes.set(key,row);
+      return row;
+    };
+  }
+  // Resolve display names/availability for every route this session knows about.
+  async function modelCatalog(agent, library, authz, signal) {
+    const routes=new Map();
+    const add=list=>{for(const route of list||[]) if(route?.provider && route?.model) routes.set(routeKey(route),{provider:route.provider,model:route.model});};
+    add(authz.routes); add(library?.pool); add(library?.strategies?.flatMap(s=>s.models)); add(library?.active?.snapshot?.models);
+    const allowed=new Set(authz.routes.map(routeKey));
+    const resolve=routeResolver(signal);
+    await Promise.all([...routes.values()].map(async route=>{
+      const row=await resolve(route);
+      row.authorized=allowed.has(routeKey(route));
+      routes.set(routeKey(route),row);
     }));
     return routes;
+  }
+  // The saved new-session default is reported on its own, never merged into
+  // `candidates`: `unauthorized` routes are outside the Host's live allow-list,
+  // `unavailable` routes are authorized but cannot be resolved right now. The
+  // recorded default name is the label, so a model that cannot be resolved still
+  // reads as the model the user saved.
+  async function defaultModelConflict(value, current, signal) {
+    const allowed=new Set((Array.isArray(current.allowedModels)?current.allowedModels:[]).map(routeKey));
+    const names=new Map((value.modelsInfo||[]).map(info=>[routeKey(info),typeof info.name==='string'?info.name.trim():'']));
+    const resolve=routeResolver(signal);
+    const rows=await Promise.all((value.models||[]).map(async route=>{
+      const name=names.get(routeKey(route)) || route.model;
+      const entry={provider:route.provider,model:route.model,name};
+      if(!allowed.has(routeKey(route))) return {kind:'unauthorized',entry};
+      const row=await resolve(route);
+      return row.available ? null : {kind:'unavailable',entry};
+    }));
+    return {
+      unauthorized:rows.filter(row=>row?.kind==='unauthorized').map(row=>row.entry),
+      unavailable:rows.filter(row=>row?.kind==='unavailable').map(row=>row.entry),
+    };
   }
   async function availabilityOf(routes, signal) {
     const available=new Set();
@@ -309,6 +356,10 @@ export async function applyWithPackageMeta(ctx, packageMeta) {
       revision:global.revision,
       snapshot:def.value ? clone(def.value) : null,
       conflict:def.value ? limitsConflict(def.value.limits,{...ceilings,activeKnown:ceilings.maxActiveKnown}) : null,
+      // Only meaningful while the Host selection is enabled: with it disabled a
+      // new session is born without an authorization subset, so nothing can be
+      // out of bounds there. Kept as a stable object with two lists.
+      modelConflict:def.value && current.enabled===true ? await defaultModelConflict(def.value,current) : null,
       hostKnown:ceilings.maxActiveKnown,
     };
     const rows=[...runs.entries()].map(([,r])=>r).filter(r=>r.rootId===id).sort((a,b)=>b.createdAt-a.createdAt).slice(0,50);
@@ -552,7 +603,16 @@ export async function applyWithPackageMeta(ctx, packageMeta) {
       const strategy=library.strategies.find(row=>row.id===request.id);
       if(!strategy) fail(`策略不存在：${request.id}`);
       if(strategy.type==='inherit') fail('跟随类型不能设为新会话默认；请先保存为固定或 Agent 自选策略');
+      // A new session can only be born inside the Host's live allow-list, so a
+      // default that names a revoked model would be born broken. Use this
+      // session's effective authorization (live for a live root; snapshot ∩ live
+      // for a seeded/forked root) instead of the raw host list, so setting a
+      // global default never widens a narrower session boundary. A disabled Host
+      // selection has no list to check against, so it keeps the old behaviour;
+      // stale pool references always reject.
       const authz=hostAuth(agent);
+      const selection=currentSelection();
+      validateDefaultRefs(strategy,library.pool,{authorized:selection?.enabled===true ? authz.routes : null});
       const catalog=await modelCatalog(agent,library,authz,signal);
       const pool=library.pool.map(entry=>({...entry,name:catalog.get(routeKey(entry))?.name || entry.model}));
       const value=defaultFromStrategy(strategy,pool,library.limits,{now:Date.now()});
@@ -674,14 +734,17 @@ export async function applyWithPackageMeta(ctx, packageMeta) {
       const global=globalState();
       const def=readDefaultSafe(global).value;
       const now=Date.now();
+      // The saved default may be older than the Host's current allow-list. Only
+      // an enabled selection carries a live subset to filter against; disabled
+      // selection imports the default exactly as recorded.
       const library=def
-        ? importDefault(def,{now,id:randomUUID(),defaultRevision:global.revision})
+        ? importDefault(def,{now,id:randomUUID(),defaultRevision:global.revision,authorized:liveAuthorized(currentSelection())})
         : emptyLibrary({now});
       await policies.put(agent.id,{revision:0,policy:buildPolicy(library,hostDepth()),library});
     });
   }
 
-  ctx.commands.register({name:'subagent-policy',description:'查看或由用户配置当前会话的子智能体模型选择策略',recordInput:true,input:{hint:'JSON action: read / save / strategy.save / pool.save / limits.save …'},
+  ctx.commands.register({name:'subagent-policy',description:'查看或由用户配置当前会话的子智能体模型策略',recordInput:true,input:{hint:'JSON action: read / save / strategy.save / pool.save / limits.save …'},
     async handler(inv){
       try {
         if(inv.rawInput.length>40000) fail('请求过长');
