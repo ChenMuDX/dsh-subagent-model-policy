@@ -2,9 +2,9 @@
 
 简体中文 · [English](https://github.com/ChenMuDX/dsh-subagent-model-policy/blob/main/README_en.md)
 
-作者：lez · 版本 `0.3.2` · 目标宿主 DeepSeek Harness `>=0.2.2-rc.1`（最低支持标准）· Node `>=24.12.0`。
+作者：lez · 版本 `0.3.3` · 目标宿主 DeepSeek Harness `>=0.2.2-rc.1`（最低支持标准）· Node `>=24.12.0`。
 
-> 本版本使用数字版本号；AC-12 已由用户在真实 `desktop` 完成交互验收（2026-11-09），标题栏版本号与 GitHub 链接、限制默认值显示已由用户在同一页面确认（2026-11-10）；0.3.2 的图标与中文名、未保存限制时启用、默认按宿主授权过滤也已由用户确认（2026-11-10）。深度/存活超限等真实场景仍暂缓，不要把本版本表述为这些边界的实测版。
+> 本版本使用数字版本号；AC-12 已由用户在真实 `desktop` 完成交互验收（2026-11-09），标题栏版本号与 GitHub 链接、限制默认值显示已由用户在同一页面确认（2026-11-10）；0.3.2 的图标与中文名、未保存限制时启用、默认按宿主授权过滤也已由用户确认（2026-11-10）；0.3.3 起同时适配宿主 `0.2.2-rc.1` 与 `0.2.2-rc.2`。深度/存活超限等真实场景仍暂缓，不要把本版本表述为这些边界的实测版。
 
 在当前会话中管理子智能体的模型选择策略、候选模型池、会话级并发/递归限制，并记录创建时的策略与实际响应证据。默认关闭；安装不会改变主模型、其他会话的模型选择或宿主授权。
 
@@ -13,7 +13,7 @@
 在 DeepSeek Harness 的插件管理器中安装：
 
 ```text
-@lienze/dsh-subagent-model-policy@0.3.2
+@lienze/dsh-subagent-model-policy@0.3.3
 ```
 
 安装后按当前 Harness 的方式重载插件与页面；源码修改不等于运行实例已更新。若当前 Harness 使用 CLI 管理 profile，按该版本文档把同一包说明符加入对应 profile。
@@ -24,7 +24,7 @@
 
 按下面顺序即可完成一次完整设置；各项语义以后面对应小节为准。
 
-1. **安装并启用插件**：在宿主左侧「插件」面板完成 `@lienze/dsh-subagent-model-policy@0.3.2` 的安装与启用，并按当前 Harness 的方式重载插件与页面。
+1. **安装并启用插件**：在宿主左侧「插件」面板完成 `@lienze/dsh-subagent-model-policy@0.3.3` 的安装与启用，并按当前 Harness 的方式重载插件与页面。
 
 ![宿主「插件」面板：安装、启用和配置插件](https://raw.githubusercontent.com/ChenMuDX/dsh-subagent-model-policy/main/docs/images/host-plugin-manager.png)
 

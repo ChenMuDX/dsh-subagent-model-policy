@@ -6,7 +6,7 @@ import {
   readLibrary, readDefault, legacyLibrary, materializeLegacy, emptyLibrary, buildPolicy,
   snapshotForStrategy, sameSnapshotContent, sameStrategyContent, readStrategyDraft,
   readPoolEntries, validateStrategyRefs, assertStrategyNameFree, validateForUse,
-  validatePoolSave, planPoolSync, defaultFromStrategy, importDefault, strategyNeedsAdjust,
+  validatePoolSave, defaultFromStrategy, importDefault, strategyNeedsAdjust,
   validateDefaultRefs,
   limitsConflict, readRoutes, LEGACY_STRATEGY_ID, LEGACY_INHERIT_ID,
   assertHostActive, PLUGIN_MAX_ACTIVE, refreshSnapshotInfo,
@@ -39,7 +39,7 @@ const clone = v => structuredClone(v);
 const render = (_args,value)=>[{type:'text',text:JSON.stringify(value,null,2)}];
 const COVERAGE = [
   {entry:'delegate_with_policy',status:'managed-local',detail:'本插件工具：模型参数选择、深度、并发子智能体数量、路由预检；仅本地 spawn/fork。'},
-  ...['subagent','subagent_fork','workflow','spawn_teammate'].map(entry=>({entry,status:'local-admission',detail:'仅本地 Agent 创建及出站路由校验；不改写原生参数。入口未能指定目标模型时会拒绝，请改用策略工具。'})),
+  ...['subagent','subagent_fork','workflow','spawn_teammate'].map(entry=>({entry,status:'local-admission',detail:'仅本地 Agent 创建及出站路由校验；不改写原生参数。入口未能指定目标模型时会拒绝，请改用策略工具。继承父上下文的 fork 类后端（如只读旁问）在子代路由未变时按继承放行。'})),
   {entry:'external backends',status:'not-covered',detail:'外部执行及其他插件直接调用模型不在本地 Agent 准入范围。'},
 ];
 const ACTIONS = new Set([
@@ -160,8 +160,8 @@ export async function applyWithPackageMeta(ctx, packageMeta) {
   // eligible top-level root the live list is the real upper bound, so it is used even
   // when a snapshot exists; the snapshot is kept only as the recorded count. Child,
   // fork and seed sessions still intersect their own snapshot.
-  function authorization(agent, current=ctx.subagentModelSelection.current()) {
-    if(!current.enabled) return {source:'none', routes:[], frozen:null};
+  function authorization(agent, current=currentSelection()) {
+    if(!current?.enabled) return {source:'none', routes:[], frozen:null};
     const own=session(agent), root=ctx.sessions.get(rootId(agent));
     const frozen=frozenSnapshot(own) ?? frozenSnapshot(root);
     const allowed=new Set(current.allowedModels.map(routeKey));
@@ -229,7 +229,7 @@ export async function applyWithPackageMeta(ctx, packageMeta) {
   function preview(agent,record=recordFor(agent),auth=authorization(agent)) {
     return renderContext(record,{depth:session(agent)?.header.delegationDepth ?? 0,ceiling:hostDepth(),authorized:auth.routes,authorizationSource:auth.source});
   }
-  ctx.systemPrompt.context({name:'lez:subagent-policy',order:850,interpolate:false,text:({agent})=>agent ? preview(agent):''});
+  ctx.systemPrompt.context({name:'lez:subagent-policy',order:850,interpolate:false,required:true,text:({agent})=>agent ? preview(agent):''});
 
   function readDefaultSafe(global) {
     if(!global?.default) return {value:null, issue:null};
@@ -335,18 +335,25 @@ export async function applyWithPackageMeta(ctx, packageMeta) {
     return result;
   }
   async function snapshot(agent) {
-    const id=rootId(agent), record=recordFor(agent), current=ctx.subagentModelSelection.current(), authz=authorization(agent,current);
+    const id=rootId(agent), record=recordFor(agent), current=currentSelection(), authz=authorization(agent,current);
     const library=viewLibrary(record);
     const catalog=await modelCatalog(agent,library,authz);
     const global=globalState();
     const def=readDefaultSafe(global);
     const ceilings=hostCeilings();
     const active=library.active ? {strategyId:library.active.strategyId,appliedAt:library.active.appliedAt,snapshot:clone(library.active.snapshot)} : null;
-    const strategies=library.strategies.map(strategy=>({
-      ...clone(strategy),
-      needsAdjust:strategyNeedsAdjust(strategy,library.pool)
-        || (strategy.models||[]).some(route=>{const row=catalog.get(routeKey(route));return !row?.authorized || !row?.available;}),
-    }));
+    const strategies=library.strategies.map(strategy=>{
+      // F-50: two separate states instead of one merged badge. `needsAdjust`
+      // still means references outside the saved pool; `pendingRecovery` means
+      // references that stay in the pool but are not Host-authorized or cannot
+      // be resolved right now — they are kept and return on their own.
+      const pendingRefs=(strategy.models||[]).filter(route=>{
+        if(!library.pool.some(entry=>sameRoute(entry,route))) return false;
+        const row=catalog.get(routeKey(route));
+        return !row?.authorized || !row?.available;
+      });
+      return {...clone(strategy),needsAdjust:strategyNeedsAdjust(strategy,library.pool),pendingRecovery:pendingRefs.length>0};
+    });
     const pool=library.pool.map(entry=>{
       const row=catalog.get(routeKey(entry));
       return {...clone(entry), name:row?.name || entry.model, authorized:!!row?.authorized, available:!!row?.available,
@@ -359,7 +366,7 @@ export async function applyWithPackageMeta(ctx, packageMeta) {
       // Only meaningful while the Host selection is enabled: with it disabled a
       // new session is born without an authorization subset, so nothing can be
       // out of bounds there. Kept as a stable object with two lists.
-      modelConflict:def.value && current.enabled===true ? await defaultModelConflict(def.value,current) : null,
+      modelConflict:def.value && current?.enabled===true ? await defaultModelConflict(def.value,current) : null,
       hostKnown:ceilings.maxActiveKnown,
     };
     const rows=[...runs.entries()].map(([,r])=>r).filter(r=>r.rootId===id).sort((a,b)=>b.createdAt-a.createdAt).slice(0,50);
@@ -367,7 +374,7 @@ export async function applyWithPackageMeta(ctx, packageMeta) {
     if(authz.source==='host') diagnostics.push(authz.frozen===null
       ? '本会话没有官方固化快照；固定/自选按宿主当前已启用路由临时生效，原生 subagent 仍不带模型参数，请使用 delegate_with_policy。'
       : `候选按宿主当前已启用列表实时显示；会话固化快照 ${authz.frozen} 条仅存记录；池新增与委派仍按发起瞬间实时校验。`);
-    else if(!authz.routes.length) diagnostics.push(current.enabled
+    else if(!authz.routes.length) diagnostics.push(current?.enabled
       ? '当前会话没有官方显式模型选择授权快照，且该会话不满足兜底条件（例如 fork/种子会话）；可使用跟随模式。'
       : '官方子智能体模型选择未启用；当前只能使用跟随模式。');
     if(record.issue) diagnostics.push(record.issue);
@@ -381,7 +388,7 @@ export async function applyWithPackageMeta(ctx, packageMeta) {
       ...(packageMeta && packageMeta.repository ? {repository:packageMeta.repository} : {}),
       policy:clone(record.policy), candidates:[...catalog.values()].map(row=>clone(row)),ceilings:{maxDepth:ceilings.maxDepth},
       host:ceilings, preview:preview(agent,record,authz),coverage:COVERAGE,
-      authorization:{hostEnabled:current.enabled,hostAllowed:current.enabled ? current.allowedModels.length : 0,
+      authorization:{hostEnabled:current?.enabled===true,hostAllowed:current?.enabled===true ? current.allowedModels.length : 0,
         sessionFrozen:authz.frozen, source:authz.source},
       management:{explicit:!!record.explicit, strategies, pool, limits:library.limits?clone(library.limits):null,
         active:active?clone(active):null, initialized:library.initialized?clone(library.initialized):null},
@@ -546,34 +553,15 @@ export async function applyWithPackageMeta(ctx, packageMeta) {
       return {library};
     }, signal);
   }
-  // Refresh candidates: drop pool entries the Host no longer supports at the
-  // moment the sync is initiated, and prune the same unsupported routes out of
-  // strategy references so the candidate list really shrinks. The applied
-  // snapshot stays protected: any reference it keeps to a route the sync would
-  // remove blocks the whole sync.
+  // Refresh candidates (F-50): revalidation only. Nothing is removed here —
+  // unsupported pool entries and strategy references keep their checked state,
+  // the panel sinks them to the bottom of the list, and they return to their
+  // position on their own once the Host authorizes/resolves them again. The
+  // returned snapshot carries the fresh authorization/availability; removal is
+  // a manual uncheck + pool save, so a sync never writes and never bumps the
+  // revision (returning `false` from the operation reads without writing).
   async function savePoolSync(agent, request, signal) {
-    return mutate(agent, request, async ({library,signal:innerSignal})=>{
-      const authz=hostAuth(agent);
-      const routes=[...library.pool,...library.strategies.flatMap(strategy=>strategy.models||[])];
-      const available=await availabilityOf(routes,innerSignal);
-      const plan=planPoolSync(library.pool,{authorized:authz.routes,available:[...available]},library.active?library.active.snapshot:null,library.strategies);
-      if(!plan.removed.length && !plan.pruned.length) return false;
-      library.pool=plan.kept;
-      if(library.active) library.active={...library.active,snapshot:refreshSnapshotInfo(library.active.snapshot,library.pool)};
-      let legacyTouched=false;
-      for(const item of plan.pruned){
-        const strategy=library.strategies.find(row=>row.id===item.id);
-        if(!strategy) continue;
-        strategy.models=item.models;
-        strategy.version=(Number.isSafeInteger(strategy.version)?strategy.version:1)+1;
-        if(strategy.id===LEGACY_STRATEGY_ID || strategy.id===LEGACY_INHERIT_ID) legacyTouched=true;
-      }
-      if(library.legacyPolicy && legacyTouched){
-        const keptKeys=new Set(library.strategies.flatMap(strategy=>(strategy.models||[]).map(routeKey)));
-        library.legacyPolicy={...library.legacyPolicy,models:(library.legacyPolicy.models||[]).filter(model=>keptKeys.has(routeKey(model)))};
-      }
-      return {library};
-    }, signal);
+    return mutate(agent, request, async () => false, signal);
   }
   async function saveLimits(agent, request, signal) {
     return mutate(agent, request, async ({library})=>{
@@ -807,6 +795,20 @@ export async function applyWithPackageMeta(ctx, packageMeta) {
 
   function localChild(agent) {return session(agent)?.header.origin==='subagent';}
   function creationRoute(agent) {return {provider:agent.options?.provider,model:agent.options?.model};}
+  // The Host writes one durable `subagent/descriptor` into the child's own log during
+  // `agents.create` setup, before `agent/created` listeners run; the last descriptor is the
+  // child's own even when a fork seed replays an ancestor's. Its provider is the only public
+  // fact naming the creating backend, so inheritance is read from the Host's stated capability
+  // instead of matching a plugin, package, label or product name (ADR-024).
+  function creatingBackendInheritsParent(agent) {
+    let events;
+    try { events=session(agent)?.snapshotEvents?.(); } catch { return false; }
+    if(!Array.isArray(events)) return false;
+    let provider;
+    for(const e of events) if(e?.type==='subagent/descriptor' && typeof e.data?.provider==='string') provider=e.data.provider;
+    if(!provider) return false;
+    try { return ctx.subagents.getProvider(provider)?.inheritsParentContext===true; } catch { return false; }
+  }
   function count(id,except) {
     const counted=new Set([...leases].filter(([child,l])=>l.rootId===id && child!==except).map(([child])=>child));
     // Count acknowledged residents, NOT all registry entries: siblings may be entered
@@ -824,22 +826,25 @@ export async function applyWithPackageMeta(ctx, packageMeta) {
     const rec=pin?.record ?? (source==='resume' && previous?.policy ? {revision:previous.version,policy:previous.policy} : parent ? recordFor(parent):undefined);
     if(!rec?.policy.enabled || !root) {residents.set(agent.id,agent);return;}
     const route=creationRoute(agent), base=previous ? {provider:previous.requestedProvider,model:previous.requestedModel} : parent?baseline(parent):route;
+    // A fork-style child keeps the parent's route: nothing was selected, so the auto subset
+    // (which constrains selection) does not apply. Fixed/inherit modes keep their own rules.
+    const inheritedParent=creatingBackendInheritsParent(agent) && sameRoute(route, base);
     // The Host samples its own pool at each materialization; when its live value
     // is readable, this plugin's admission narrows to that value. Unknown is not
     // guessed here: the Host still enforces its own capacity.
     const host=hostCeilings();
-    checkAdmission(rec.policy,route,base,s.header.delegationDepth ?? 1,count(root,agent.id),host.maxDepth,host.maxActiveKnown?host.maxActive:null);
+    checkAdmission(rec.policy,route,base,s.header.delegationDepth ?? 1,count(root,agent.id),host.maxDepth,host.maxActiveKnown?host.maxActive:null,{inheritsParentContext:inheritedParent});
     if(rec.policy.mode!=='inherit') {
       const auth=new Set((parent?officialRoutes(parent):[]).map(routeKey));
       if(parent && !auth.has(routeKey(route))) fail('创建模型已不在当前官方授权范围');
     }
     // Reservation is synchronous before the first await, so sibling admissions cannot race.
-    leases.set(agent.id,{agent,rootId:root,policy:clone(rec.policy),version:rec.revision,baseline:base});
+    leases.set(agent.id,{agent,rootId:root,policy:clone(rec.policy),version:rec.revision,baseline:base,inheritParent:inheritedParent});
     residents.set(agent.id,agent);
     try {
       if(!previous) {
         const meta=activeMeta(rec);
-        await runs.put(agent.id,{id:agent.id,rootId:root,parentId:s.header.parentSession,label:'本地子智能体',requestedProvider:route.provider ?? '',requestedModel:route.model ?? '',version:rec.revision,policy:clone(rec.policy),reason:'原生入口；未记录显式选择依据',status:'admitted',createdAt:Date.now(),...meta});
+        await runs.put(agent.id,{id:agent.id,rootId:root,parentId:s.header.parentSession,label:'本地子智能体',requestedProvider:route.provider ?? '',requestedModel:route.model ?? '',version:rec.revision,policy:clone(rec.policy),reason:inheritedParent?'原生 fork 继承父模型（未显式选型）':'原生入口；未记录显式选择依据',...(inheritedParent?{entry:'native-inherit'}:{}),status:'admitted',createdAt:Date.now(),...meta});
       }
     } catch(e){leases.delete(agent.id);residents.delete(agent.id);throw e;}
   }
@@ -875,12 +880,13 @@ export async function applyWithPackageMeta(ctx, packageMeta) {
     if(!lease) return next();
     const p=lease.policy, route={provider:options.provider,model:options.model};
     if(p.mode!=='inherit') {
-      const allowed=ctx.subagentModelSelection.current();
-      if(!allowed.enabled || !allowed.allowedModels.some(r=>sameRoute(r,route))) fail('该子智能体模型已被宿主撤销授权');
+      const allowed=currentSelection();
+      if(!allowed || !allowed.enabled || !Array.isArray(allowed.allowedModels) || !allowed.allowedModels.some(r=>sameRoute(r,route))) fail('该子智能体模型已被宿主撤销授权');
     }
     if(p.mode==='inherit' && !sameRoute(route,lease.baseline)) fail('子智能体请求模型偏离创建时跟随模型');
     if(p.mode==='fixed' && !sameRoute(route,{provider:p.fixedProvider,model:p.fixedModel})) fail('子智能体请求模型偏离固定策略');
-    if(p.mode==='auto' && !p.models.some(r=>sameRoute(r,route))) fail('子智能体请求模型超出会话授权');
+    if(p.mode==='auto' && lease.inheritParent && !sameRoute(route,lease.baseline)) fail('子智能体请求模型偏离继承的父模型');
+    if(p.mode==='auto' && !lease.inheritParent && !p.models.some(r=>sameRoute(r,route))) fail('子智能体请求模型超出会话授权');
     return next();
   });
 
@@ -905,8 +911,12 @@ export async function applyWithPackageMeta(ctx, packageMeta) {
       const childId=randomUUID();
       pending.set(childId,{record:clone(rec)});
       let started;
+      // Dual-shape activation spec: 0.2.2-rc.1 hosts read only `spec.request.*`,
+      // 0.2.2-rc.2 hosts read only the flat fields, and neither rejects the other
+      // shape's extra key. Passing both keeps one call valid on either host.
+      const startRequest={parent:agent,prompt:[{type:'text',text:args.prompt}],agentOptions:selected,maxDepth:Math.min(p.maxDepth,hostDepth())};
       try {
-        started=await ctx.subagents.startActivation({childId,provider:backend,label:args.description,delivery:'parent',signal:exec.signal,request:{parent:agent,prompt:[{type:'text',text:args.prompt}],agentOptions:selected,maxDepth:Math.min(p.maxDepth,hostDepth())}});
+        started=await ctx.subagents.startActivation({childId,provider:backend,label:args.description,delivery:'parent',signal:exec.signal,...startRequest,request:startRequest});
       } finally {pending.delete(childId);}
       const row=runs.get(started.childId);
       if(row) await runs.update(started.childId,current=>({...current,label:args.description,reason:args.reason,entry:'delegate_with_policy'})).catch(e=>ctx.logger.warn(`child started; audit label save failed: ${String(e)}`));

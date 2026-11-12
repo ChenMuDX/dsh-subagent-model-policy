@@ -1,6 +1,6 @@
 {
   "name": "@lienze/dsh-subagent-model-policy",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": false,
   "type": "module",
   "description": "Session-scoped subagent policy, model guidance and execution evidence for DeepSeek Harness.",

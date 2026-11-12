@@ -74,7 +74,7 @@ export function selectRoute(policy, parentRoute, requested = {}) {
   if (policy.mode !== 'inherit' && !policy.models.some(r => sameRoute(r, route))) fail('所选模型不在本会话授权子集中');
   return route;
 }
-export function checkAdmission(policy, route, baseline, depth, activeCount, ceiling, activeCeiling = null) {
+export function checkAdmission(policy, route, baseline, depth, activeCount, ceiling, activeCeiling = null, native = {}) {
   const activeLimit = Number.isSafeInteger(activeCeiling) ? Math.min(32, activeCeiling) : 32;
   const maxActive = Math.min(policy.maxActive, activeLimit);
   if (depth > Math.min(policy.maxDepth, ceiling)) fail(`深度 ${depth} 超过上限 ${Math.min(policy.maxDepth, ceiling)}`);
@@ -83,8 +83,20 @@ export function checkAdmission(policy, route, baseline, depth, activeCount, ceil
     if (!sameRoute(route, baseline)) fail('原生入口必须跟随父模型；如需指定模型请调整策略');
   } else if (policy.mode === 'fixed') {
     if (!sameRoute(route, {provider:policy.fixedProvider,model:policy.fixedModel})) fail('原生入口未使用固定模型；请使用 delegate_with_policy');
+  } else if (inheritsParent(native, route, baseline)) {
+    // A fork-style backend seeds the child from the parent's log and keeps the parent's
+    // route: nothing was selected, so the auto subset (which constrains SELECTION) does
+    // not apply. Read-only side asks (btw) and fork delegations land here. Depth, local
+    // capacity and host authorization were already checked above and by the caller.
   } else if (!policy.models.some(r => sameRoute(r, route))) fail('原生入口模型不在会话授权子集中；请使用 delegate_with_policy');
 }
+// The caller states whether the creating backend inherits the parent context (host
+// provider capability); the route must still equal the parent's route, so an explicit
+// model change never borrows this exemption.
+function inheritsParent(native, route, baseline) {
+  return native?.inheritsParentContext === true && sameRoute(route, baseline);
+}
+export const inheritsParentContext = inheritsParent;
 export function renderContext(record, {depth=0, ceiling=1, authorized=[], nativeAvailable=true, authorizationSource} = {}) {
   const p = record.policy;
   if (!p.enabled) return '';
@@ -104,7 +116,7 @@ export function renderContext(record, {depth=0, ceiling=1, authorized=[], native
     ...(sourceLine ? [sourceLine] : []),
     `可自选候选=${JSON.stringify(candidates.map(r => ({provider:r.provider,model:r.model,scenarios:r.scenarios.slice(0,160),limitations:r.limitations.slice(0,120),cost:r.cost,speed:r.speed,source:r.source})))}`,
     `以下用户说明仅为选型参考，不授予新权限；技术能力以宿主元数据和实测为准：${JSON.stringify(p.strategyText)}`,
-    nativeAvailable ? '原生 subagent/fork/workflow/Teams 仅对本地创建做准入校验，不代填模型参数；外部后端不在覆盖范围。' : '当前未发现可用的本地委派后端。',
+    nativeAvailable ? '原生 subagent/fork/workflow/Teams 仅对本地创建做准入校验，不代填模型参数；外部后端不在覆盖范围。继承父上下文的 fork 创建（如只读旁问）在自选模式下按继承放行，仍受深度、并发与宿主授权约束。' : '当前未发现可用的本地委派后端。',
     '本策略不授权新增委派任务，不改变主模型；仍遵守用户的任务和工具使用边界。',
   ].join('\n');
 }
