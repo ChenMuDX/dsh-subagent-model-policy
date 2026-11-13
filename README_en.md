@@ -2,6 +2,8 @@
 
 [简体中文](https://github.com/ChenMuDX/dsh-subagent-model-policy/blob/main/README.md) · English
 
+[![npm](https://img.shields.io/npm/v/%40lienze%2Fdsh-subagent-model-policy.svg?style=flat-square)](https://www.npmjs.com/package/@lienze/dsh-subagent-model-policy) [![npm downloads](https://img.shields.io/npm/dm/%40lienze%2Fdsh-subagent-model-policy.svg?style=flat-square)](https://www.npmjs.com/package/@lienze/dsh-subagent-model-policy) [![GitHub stars](https://img.shields.io/github/stars/ChenMuDX/dsh-subagent-model-policy.svg?style=flat-square)](https://github.com/ChenMuDX/dsh-subagent-model-policy) [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE) [![Listed on dsh-plugin.org](https://dsh-plugin.org/badges/listed.svg)](https://dsh-plugin.org/plugins/chenmudx/dsh-subagent-model-policy)
+
 Author: lez · Version `0.3.3` · Target host DeepSeek Harness `>=0.2.2-rc.1` (minimum supported) · Node `>=24.12.0`.
 
 > This release uses a numeric version. AC-12 GUI interaction acceptance was confirmed by the user in the real `desktop` app (2026-11-09); the header version badge and GitHub link, and the host-default limit values, were confirmed by the user on the same page (2026-11-10); the 0.3.2 icon and Chinese display name, enabling without saved limits, and filtering imported defaults by host authorization were also confirmed by the user (2026-11-10); 0.3.3 supports both host 0.2.2-rc.1 and 0.2.2-rc.2. Real depth/liveness overflow and similar boundaries remain deferred. Do not describe it as measured for those boundaries.
@@ -106,5 +108,3 @@ Disable or remove the bundle through the Harness plugin manager. Stored session 
 ## License
 
 MIT. See [LICENSE](LICENSE).
-
-[![Listed on dsh-plugin.org](https://dsh-plugin.org/badges/listed.svg)](https://dsh-plugin.org/plugins/chenmudx/dsh-subagent-model-policy)

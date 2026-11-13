@@ -2,6 +2,8 @@
 
 简体中文 · [English](https://github.com/ChenMuDX/dsh-subagent-model-policy/blob/main/README_en.md)
 
+[![npm](https://img.shields.io/npm/v/%40lienze%2Fdsh-subagent-model-policy.svg?style=flat-square)](https://www.npmjs.com/package/@lienze/dsh-subagent-model-policy) [![npm downloads](https://img.shields.io/npm/dm/%40lienze%2Fdsh-subagent-model-policy.svg?style=flat-square)](https://www.npmjs.com/package/@lienze/dsh-subagent-model-policy) [![GitHub stars](https://img.shields.io/github/stars/ChenMuDX/dsh-subagent-model-policy.svg?style=flat-square)](https://github.com/ChenMuDX/dsh-subagent-model-policy) [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE) [![Listed on dsh-plugin.org](https://dsh-plugin.org/badges/listed.svg)](https://dsh-plugin.org/plugins/chenmudx/dsh-subagent-model-policy)
+
 作者：lez · 版本 `0.3.3` · 目标宿主 DeepSeek Harness `>=0.2.2-rc.1`（最低支持标准）· Node `>=24.12.0`。
 
 > 本版本使用数字版本号；AC-12 已由用户在真实 `desktop` 完成交互验收（2026-11-09），标题栏版本号与 GitHub 链接、限制默认值显示已由用户在同一页面确认（2026-11-10）；0.3.2 的图标与中文名、未保存限制时启用、默认按宿主授权过滤也已由用户确认（2026-11-10）；0.3.3 起同时适配宿主 `0.2.2-rc.1` 与 `0.2.2-rc.2`。深度/存活超限等真实场景仍暂缓，不要把本版本表述为这些边界的实测版。
@@ -106,5 +108,3 @@
 ## 许可证
 
 MIT。见 [LICENSE](LICENSE)。
-
-[![Listed on dsh-plugin.org](https://dsh-plugin.org/badges/listed.svg)](https://dsh-plugin.org/plugins/chenmudx/dsh-subagent-model-policy)
