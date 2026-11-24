@@ -1,0 +1,89 @@
+{
+  "format": "dsh-subagent-policy/capability-cards",
+  "schemaVersion": 1,
+  "cards": [
+    {
+      "maker": "openai",
+      "canonicalModel": "gpt-6.2-astra",
+      "displayName": "GPT-6.2 Astra",
+      "aliases": [{"kind": "modelId", "value": "gpt-6.2-astra"}, {"kind": "displayName", "value": "GPT-6.2 Astra"}],
+      "scenarios": "复杂的多文件改动、疑难故障定位，以及需要综合代码、截图和文档的方案分析。",
+      "limitations": "接收文本与图像，不接收音视频；官方工具能力不代表当前渠道已开放。",
+      "sources": ["https://developers.openai.com/api/docs/models/gpt-6.2-astra.md"]
+    },
+    {
+      "maker": "openai",
+      "canonicalModel": "gpt-6.2-sol",
+      "displayName": "GPT-6.2 Sol",
+      "aliases": [{"kind": "modelId", "value": "gpt-6.2-sol"}, {"kind": "displayName", "value": "GPT-6.2 Sol"}],
+      "scenarios": "日常编码、补测试和小范围重构；适合拆成明确子任务、用工具执行并逐项验收。",
+      "limitations": "不接收音视频；OpenAI API 不接受 reasoning effort 为 none，其他渠道参数以宿主为准。",
+      "sources": ["https://developers.openai.com/api/docs/models/gpt-6.2-sol.md"]
+    },
+    {
+      "maker": "anthropic",
+      "canonicalModel": "claude-sonnet-5-5",
+      "displayName": "Claude Sonnet 5.5",
+      "aliases": [{"kind": "modelId", "value": "claude-sonnet-5-5"}, {"kind": "modelId", "value": "anthropic.claude-sonnet-5-5"}, {"kind": "displayName", "value": "Claude Sonnet 5.5"}],
+      "scenarios": "功能实现、跨文件修改、数据分析，以及需要结合截图理解需求并调用工具的任务。",
+      "limitations": "输入为文本与图像；官方接口不接受自定义 temperature、top_p 或 top_k。",
+      "sources": ["https://platform.claude.com/docs/en/models/sonnet-5-5/overview.md"]
+    },
+    {
+      "maker": "deepseek",
+      "canonicalModel": "deepseek-v4.1-flash-1017",
+      "displayName": "DeepSeek V4.1 Flash（1017）",
+      "aliases": [{"kind": "modelId", "value": "DeepSeek-V4.1-Flash-1017"}, {"kind": "modelId", "value": "deepseek-v4.1-flash"}, {"kind": "modelId", "value": "DeepSeek-V4.1-Flash"}, {"kind": "modelId", "value": "deepseek-flash"}],
+      "reviewAliases": [{"value": "DeepSeek-V4.1-Flash", "note": "宿主对 deepseek-official/deepseek-flash 的显示名；2026-11-24 用户裁决动态 ID 提升后仅作显示参考，不作匹配键。"}],
+      "scenarios": "从需求搭建可运行原型、多步骤编码、用工具验证并迭代实现；有截图时可辅助排查界面问题。",
+      "limitations": "截图须由渠道实际传入；第三方显示名不证明其部署了 1017 版本。",
+      "sources": ["https://api-docs.deepseek.com/zh-cn/news/news261017/", "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/"]
+    },
+    {
+      "maker": "deepseek",
+      "canonicalModel": "deepseek-v4-pro-0813",
+      "displayName": "DeepSeek V4 Pro（0813）",
+      "aliases": [{"kind": "modelId", "value": "DeepSeek-V4-Pro-0813"}],
+      "reviewAliases": [{"value": "deepseek-v4-pro", "note": "官方动态 ID；当前资料指向 0813，需核实渠道与快照，不自动匹配。"}],
+      "scenarios": "基于文本的复杂代码分析、跨文件问题定位，以及需要多步推理和工具核查的工程任务。",
+      "limitations": "官方 API 不支持图像理解；截图任务需转换为文本或另选支持图像输入的模型。",
+      "sources": ["https://api-docs.deepseek.com/zh-cn/news/news260813/", "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/"]
+    },
+    {
+      "maker": "minimax",
+      "canonicalModel": "minimax-m3.1-flash",
+      "displayName": "MiniMax M3.1 Flash",
+      "aliases": [{"kind": "modelId", "value": "MiniMax-M3.1-Flash"}, {"kind": "displayName", "value": "MiniMax M3.1 Flash"}],
+      "scenarios": "仓库内实现功能、修复缺陷并运行测试；适合交付标准明确的多步骤编码和工具自动化。",
+      "limitations": "图像、视频及思考深度是否可用取决于接入渠道；不要把早期 Space Bunny 当成正式版。",
+      "sources": ["https://www.minimax.io/blog/minimax-m31f", "https://platform.minimax.cn/docs/guides/models-intro.md"]
+    },
+    {
+      "maker": "qwen",
+      "canonicalModel": "qwen3.8-flash",
+      "displayName": "Qwen3.8-Flash",
+      "aliases": [{"kind": "modelId", "value": "qwen3.8-flash"}, {"kind": "displayName", "value": "Qwen3.8-Flash"}],
+      "scenarios": "长文档梳理、图表或长视频解读、带图文材料的代码辅助和结构化信息抽取。",
+      "limitations": "输出文本；视频、结构化输出和上下文上限以渠道为准，不把百炼规格套给本地权重。",
+      "sources": ["https://www.alibabacloud.com/blog/603503", "https://www.alibabacloud.com/help/zh/model-studio/qwen3-8-flash"]
+    },
+    {
+      "maker": "qwen",
+      "canonicalModel": "qwen4-max",
+      "displayName": "Qwen4-Max",
+      "aliases": [{"kind": "displayName", "value": "Qwen4-Max"}],
+      "scenarios": "复杂代码与视觉材料联合分析、图表推理，以及需要长上下文的多步骤任务。",
+      "limitations": "目前仅据厂商公开资料写卡；第三方 API 标识和宿主可用性未核实。",
+      "sources": ["https://www.alibabacloud.com/blog/alibaba-unveils-qwen4-max-new-ai-teammate-for-work-creativity-and-discovery_603783"]
+    },
+    {
+      "maker": "zhipu",
+      "canonicalModel": "glm-5.3-flash",
+      "displayName": "GLM-5.3-Flash",
+      "aliases": [{"kind": "modelId", "value": "glm-5.3-flash"}, {"kind": "displayName", "value": "GLM-5.3-Flash"}],
+      "scenarios": "对照截图实现前端、根据渲染结果定位布局问题，并通过浏览器反馈迭代和验收。",
+      "limitations": "需要渠道实际提供图像与浏览器工具；文本接入不等于具备截图验收能力。",
+      "sources": ["https://docs.z.ai/release-notes/new-released.md", "https://docs.z.ai/guides/vlm/glm-5.3-flash"]
+    }
+  ]
+}

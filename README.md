@@ -2,11 +2,11 @@
 
 简体中文 · [English](https://github.com/ChenMuDX/dsh-subagent-model-policy/blob/main/README_en.md)
 
-[![npm](https://img.shields.io/npm/v/%40lienze%2Fdsh-subagent-model-policy.svg?style=flat-square)](https://www.npmjs.com/package/@lienze/dsh-subagent-model-policy) [![npm downloads](https://img.shields.io/npm/dm/%40lienze%2Fdsh-subagent-model-policy.svg?style=flat-square)](https://www.npmjs.com/package/@lienze/dsh-subagent-model-policy) [![GitHub stars](https://img.shields.io/github/stars/ChenMuDX/dsh-subagent-model-policy.svg?style=flat-square)](https://github.com/ChenMuDX/dsh-subagent-model-policy) [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE) [![Listed on dsh-plugin.org](https://dsh-plugin.org/badges/listed.svg)](https://dsh-plugin.org/plugins/chenmudx/dsh-subagent-model-policy)
+[![npm](https://img.shields.io/npm/v/%40lienze%2Fdsh-subagent-model-policy.svg?style=flat-square)](https://www.npmjs.com/package/@lienze/dsh-subagent-model-policy) [![npm downloads](https://img.shields.io/npm/dm/%40lienze%2Fdsh-subagent-model-policy.svg?style=flat-square)](https://www.npmjs.com/package/@lienze/dsh-subagent-model-policy) [![GitHub](https://img.shields.io/badge/GitHub-ChenMuDX%2Fdsh--subagent--model--policy-blue.svg?style=flat-square&logo=github)](https://github.com/ChenMuDX/dsh-subagent-model-policy) [![GitHub stars](https://img.shields.io/github/stars/ChenMuDX/dsh-subagent-model-policy.svg?style=flat-square)](https://github.com/ChenMuDX/dsh-subagent-model-policy) [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE) [![Listed on dsh-plugin.org](https://dsh-plugin.org/badges/listed.svg)](https://dsh-plugin.org/plugins/chenmudx/dsh-subagent-model-policy)
 
-作者：lez · 版本 `0.3.3` · 目标宿主 DeepSeek Harness `>=0.2.2-rc.1`（最低支持标准）· Node `>=24.12.0`。
+作者：lez · 版本 `0.4.0` · 目标宿主 DeepSeek Harness `>=0.2.2-rc.1`（最低支持标准）· Node `>=24.12.0`。
 
-> 本版本使用数字版本号；AC-12 已由用户在真实 `desktop` 完成交互验收（2026-11-09），标题栏版本号与 GitHub 链接、限制默认值显示已由用户在同一页面确认（2026-11-10）；0.3.2 的图标与中文名、未保存限制时启用、默认按宿主授权过滤也已由用户确认（2026-11-10）；0.3.3 起同时适配宿主 `0.2.2-rc.1` 与 `0.2.2-rc.2`。深度/存活超限等真实场景仍暂缓，不要把本版本表述为这些边界的实测版。
+> 本版本使用数字版本号。三页面板交互已由用户在真实 `desktop` 完成验收；0.4.0 新增的项目级策略、共享模型池与预设能力卡的桌面复核仍待用户确认。深度/存活超限等真实场景仍暂缓，不要把本版本表述为这些边界的实测版。
 
 在当前会话中管理子智能体的模型选择策略、候选模型池、会话级并发/递归限制，并记录创建时的策略与实际响应证据。默认关闭；安装不会改变主模型、其他会话的模型选择或宿主授权。
 
@@ -15,7 +15,7 @@
 在 DeepSeek Harness 的插件管理器中安装：
 
 ```text
-@lienze/dsh-subagent-model-policy@0.3.3
+@lienze/dsh-subagent-model-policy@0.4.0
 ```
 
 安装后按当前 Harness 的方式重载插件与页面；源码修改不等于运行实例已更新。若当前 Harness 使用 CLI 管理 profile，按该版本文档把同一包说明符加入对应 profile。
@@ -26,7 +26,7 @@
 
 按下面顺序即可完成一次完整设置；各项语义以后面对应小节为准。
 
-1. **安装并启用插件**：在宿主左侧「插件」面板完成 `@lienze/dsh-subagent-model-policy@0.3.3` 的安装与启用，并按当前 Harness 的方式重载插件与页面。
+1. **安装并启用插件**：在宿主左侧「插件」面板完成 `@lienze/dsh-subagent-model-policy@0.4.0` 的安装与启用，并按当前 Harness 的方式重载插件与页面。
 
 ![宿主「插件」面板：安装、启用和配置插件](https://raw.githubusercontent.com/ChenMuDX/dsh-subagent-model-policy/main/docs/images/host-plugin-manager.png)
 
@@ -34,7 +34,7 @@
 
 ![宿主「子智能体」配置：运行限制与模型选择](https://raw.githubusercontent.com/ChenMuDX/dsh-subagent-model-policy/main/docs/images/host-subagent-config.png)
 
-3. **配置候选并建立策略**：点会话标题栏的「子智能体模型策略」按钮，或右侧栏同名页签，打开三页面板（面板内策略开关默认关闭，主模型与宿主授权不受安装影响）。在「模型池」页勾选允许纳入策略的候选并保存，形成当前会话池；再到「选择策略」页新建策略——固定模型从会话池单选一个，Agent 自选从会话池勾选子集并填写选择说明——打开开关后保存。要让新会话自动携带同一策略，再把它设为「新会话默认」；启用中的策略在下一次主 Agent 发起模型调用时生效。
+3. **配置候选并建立策略**：点会话标题栏的「子智能体模型策略」按钮，或右侧栏同名页签，打开三页面板（面板内策略开关默认关闭，主模型与宿主授权不受安装影响）。在「模型池」页勾选允许纳入策略的候选并保存，形成当前会话池；再到「选择策略」页新建策略——固定模型从会话池单选一个，Agent 自选从会话池勾选子集并填写路由规则——打开开关后保存。要让新会话自动携带同一策略，再把它设为「新会话默认」；启用中的策略在下一次主 Agent 发起模型调用时生效。同一项目（已注册工作区）内的会话共享模型池与能力卡；已启用的会话策略优先，没有会话策略时使用已启用的项目策略，项目策略生效期间该项目内的新会话不再导入「新会话默认」。
 
 ![插件面板「模型池」页：勾选候选形成会话池](https://raw.githubusercontent.com/ChenMuDX/dsh-subagent-model-policy/main/docs/images/plugin-pool.png)
 
@@ -69,9 +69,9 @@
 ## 模型池与限制
 
 - 模型池只列出当前宿主允许的候选；勾选不会扩大宿主授权，也不管理 API Key、连接或官方授权。
-- 当前启用策略引用的候选受保护，移除会被拒绝并提示先调整或关闭。
-- 「刷新候选」按发起瞬间的宿主授权与可用性移除失效候选，并同步清理策略中的失效引用；当前启用内容受保护。
-- 模型行显示宿主提供的思考等级与能力卡；未提供时不猜测等级名。
+- 从模型池移除被引用的模型不阻止保存；启用中的策略若仍有可用引用可收窄生效，固定目标或所有候选被移除时停用，未启用策略标记「需调整」并保留引用。
+- 「刷新候选」只重新校验并报告恢复/失效数量，不删除候选；移除候选的唯一途径是手动取消勾选并保存。
+- 模型行显示宿主提供的思考等级与能力卡；未提供时不猜测等级名。内置预设能力卡会填充命中预设的空白条目并标记「预设」，已保存的用户内容（包括留空）不被覆盖；任何候选都可查看、编辑或恢复预设，不会因此自动入池。
 - 并发子智能体数量与最大递归深度为会话公共配置，切换策略不改变；实际委派同时受宿主上限和本会话限制约束。
 - 未保存本会话限制时按宿主限制启用，无需先保存；已保存限制仍作为更严格上界。
 - 保存启用中策略、启用策略和保存限制共用宿主容量门禁；无法读取宿主容量时拒绝写入并说明原因，保留已启用内容。
@@ -96,10 +96,9 @@
 
 ## 范围与暂缓
 
-- 覆盖当前会话内的策略库、模型池、默认内容与会话限制；不做跨会话共享策略库或项目级默认。
-- 不修改宿主授权、主模型、官方 profile 配置或原生工具参数。
+- 覆盖当前会话内的策略库、模型池、默认内容与会话限制；同一注册工作区内的会话共享模型池、能力卡与已启用的项目策略。不修改宿主授权、主模型、官方 profile 配置或原生工具参数。
 - 宿主撤销授权后，已绑定子 Agent 的后续请求由宿主拒绝，插件不静默回退。
-- AC-12 已由用户在真实 `desktop` 完成交互验收；深度/存活真实超限、完整旧数据迁移与策略版本切换等场景仍暂缓。合成测试通过不等于这些场景已实测。
+- 三页交互已由用户在真实 `desktop` 完成验收；深度/存活真实超限、完整旧数据迁移与策略版本切换等场景仍暂缓。合成测试通过不等于这些场景已实测。项目级策略的跨会话行为与预设能力卡的桌面复核仍待用户确认。
 
 ## 卸载
 

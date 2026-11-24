@@ -22,6 +22,52 @@ export const SKIP_REASONS = Object.freeze(['unauthorized', 'fixed-target-unautho
 export const LEGACY_STRATEGY_ID = 'legacy';
 export const LEGACY_INHERIT_ID = 'legacy-inherit';
 
+// F-58: project scope. A session belongs to a project when its canonical
+// working directory is the project's directory or a directory below it. The
+// comparison is segment aware, so `/a/bc` is not inside `/a/b`.
+const pathKey = (value, platform = process.platform) => {
+  if (typeof value !== 'string' || !value) return '';
+  const text = platform === 'win32' ? value.replace(/\\/g, '/').toLowerCase() : value;
+  return text.replace(/\/+$/, '') || '/';
+};
+
+/** Whether `childPath` is `parentPath` itself or a directory below it. */
+export function isUnderDirectory(childPath, parentPath, platform = process.platform) {
+  const child = pathKey(childPath, platform), parent = pathKey(parentPath, platform);
+  if (!child || !parent) return false;
+  return child === parent || child.startsWith(parent === '/' ? '/' : `${parent}/`);
+}
+
+/**
+ * Pick the project a session belongs to. The most specific (longest) matching
+ * project wins, so a workspace inside another workspace still resolves to the
+ * narrower one. Workspaces are the Host's own list: `{id, path, title}`.
+ */
+export function resolveProjectScope(canonicalCwd, workspaces) {
+  if (!canonicalCwd || !Array.isArray(workspaces)) return null;
+  let best = null;
+  for (const workspace of workspaces) {
+    if (!workspace || typeof workspace.path !== 'string' || !workspace.path) continue;
+    if (!isUnderDirectory(canonicalCwd, workspace.path)) continue;
+    if (!best || pathKey(workspace.path).length > pathKey(best.path).length) best = workspace;
+  }
+  if (!best) return null;
+  return { id: String(best.id ?? ''), path: best.path, title: String(best.title ?? '') };
+}
+
+/** Read one stored project record (the shared library of one project). */
+export function readProjectRecord(raw, field = '项目级策略') {
+  if (!isObject(raw)) fail(`${field}数据无效`);
+  return {
+    applied: raw.applied === true,
+    path: typeof raw.path === 'string' ? raw.path : '',
+    title: typeof raw.title === 'string' ? raw.title : '',
+    revision: intValue(raw.revision ?? 0, 0, Number.MAX_SAFE_INTEGER, `${field} 版本`),
+    policy: raw.policy,
+    library: raw.library,
+  };
+}
+
 const clone = (value) => structuredClone(value);
 const isObject = (value) => !!value && typeof value === 'object' && !Array.isArray(value);
 const routeOf = (value) => ({ provider: value.provider, model: value.model });
@@ -86,9 +132,17 @@ export function readPoolEntries(raw, field = '模型池') {
   });
 }
 
+// A fallback is optional and never grants access to another route.
+function routingDefaultFields(value, models = value.models) {
+  if (value.routingDefault === undefined) return {};
+  const [route] = readRoutes([value.routingDefault], '默认模型');
+  if (value.type !== 'auto' || !models.some(item => sameRoute(item, route))) fail('默认模型必须来自自选策略的候选模型');
+  return { routingDefault: route };
+}
+
 /** Validate a strategy form. Type is restricted to the two page types. */
 export function readStrategyDraft(raw, field = '策略') {
-  requestObject(raw, ['id', 'name', 'type', 'models', 'fixedProvider', 'fixedModel', 'strategyText'], field);
+  requestObject(raw, ['id', 'name', 'type', 'models', 'fixedProvider', 'fixedModel', 'strategyText', 'routingDefault'], field);
   const draft = {
     id: raw.id === undefined ? undefined : textValue(raw.id, 120, '策略 id'),
     name: textValue(raw.name, MAX_NAME, '策略名称'),
@@ -96,7 +150,7 @@ export function readStrategyDraft(raw, field = '策略') {
     models: readRoutes(raw.models, '策略引用模型'),
     fixedProvider: textValue(raw.fixedProvider, 200, '固定提供方', { optional: true, allowEmpty: true }),
     fixedModel: textValue(raw.fixedModel, 200, '固定模型', { optional: true, allowEmpty: true }),
-    strategyText: textValue(raw.strategyText, MAX_TEXT, '选择说明', { optional: true, allowEmpty: true }),
+    strategyText: textValue(raw.strategyText, MAX_TEXT, '路由规则', { optional: true, allowEmpty: true, trim: false }),
   };
   if (!STRATEGY_TYPES.includes(draft.type)) fail('策略类型必须是固定模型或 Agent 自选');
   if (!draft.models.length) fail('至少选择一个模型');
@@ -114,7 +168,7 @@ export function readStrategyDraft(raw, field = '策略') {
     draft.fixedProvider = '';
     draft.fixedModel = '';
   }
-  return draft;
+  return Object.assign(draft, routingDefaultFields(raw, draft.models));
 }
 
 /** Validate a strategy persisted in a library record (never trims away data). */
@@ -130,7 +184,10 @@ function readStoredStrategy(raw, field = '已保存策略') {
     fixedModel: typeof raw.fixedModel === 'string' ? raw.fixedModel : '',
     strategyText: typeof raw.strategyText === 'string' ? raw.strategyText : '',
     version: intValue(raw.version, 1, Number.MAX_SAFE_INTEGER, `${field} 版本`),
+    // F-59: optional disable marker. Persisted reads keep it; absent elsewhere.
+    ...(raw.poolRemovalStop === true ? { poolRemovalStop: true } : {}),
   };
+  Object.assign(strategy, routingDefaultFields(raw, strategy.models));
   if (!STRATEGY_TYPES.includes(strategy.type) && strategy.type !== 'inherit') fail(`${field} 类型无效`);
   if (strategy.type === 'inherit') {
     if (!legacy) fail(`${field} 的跟随类型仅用于旧版只读策略`);
@@ -222,6 +279,7 @@ function readSnapshot(raw, field = '已启用内容') {
     modelsInfo: readModelsInfo(raw.modelsInfo),
     capturedAt: Number.isSafeInteger(raw.capturedAt) ? raw.capturedAt : null,
   };
+  Object.assign(snapshot, routingDefaultFields(raw, snapshot.models));
   if (!STRATEGY_TYPES.includes(snapshot.type) && snapshot.type !== 'inherit') fail(`${field} 类型无效`);
   if (snapshot.type === 'inherit' && !legacy) fail(`${field} 的跟随类型只能来自旧版只读快照`);
   if (snapshot.type === 'fixed') {
@@ -270,10 +328,23 @@ export function readLibrary(raw) {
     if (skipped.length) initialized.skipped = skipped;
   }
   const legacyPolicy = isObject(raw.legacyPolicy) ? clone(raw.legacyPolicy) : undefined;
-  return { version: LIBRARY_VERSION, strategies, pool, limits: readLimits(raw.limits), active, initialized, legacyPolicy };
+  const cards = readCardEntries(raw.cards);
+  const library = { version: LIBRARY_VERSION, strategies, pool, limits: readLimits(raw.limits), active, initialized, legacyPolicy };
+  // F-63: cards are stored apart from the pool so a candidate outside the pool
+  // can still carry one. Pool entries mirror their card so old records and the
+  // injected text keep the same shape.
+  for (const entry of pool) {
+    const card = cards.find((item) => routeKey(item) === routeKey(entry));
+    if (!card) continue;
+    entry.purpose = card.purpose;
+    entry.note = card.note;
+    if (card.source) entry.source = card.source;
+  }
+  if (cards.length) library.cards = cards;
+  return library;
 }
 
-function readPoolEntriesLenient(raw) {
+export function readPoolEntriesLenient(raw) {
   if (!Array.isArray(raw)) fail('模型池数据无效');
   if (raw.length > MAX_MODELS) fail('模型池条目过多');
   const seen = new Set();
@@ -285,14 +356,118 @@ function readPoolEntriesLenient(raw) {
       purpose: typeof item.purpose === 'string' ? item.purpose.slice(0, MAX_PURPOSE) : '',
       note: typeof item.note === 'string' ? item.note.slice(0, MAX_NOTE) : '',
     };
+    // F-52: the source marker is written by the Host only. It must survive
+    // every read, otherwise a preset entry loses its marker and the next save
+    // would treat it as user content.
+    if (item.source === 'preset' || item.source === 'user') entry.source = item.source;
     if (seen.has(routeKey(entry))) fail('模型池存在重复模型');
     seen.add(routeKey(entry));
     return entry;
   });
 }
 
-/** Read the global new-session default record. */
-export function readDefault(raw) {
+/** Read one capability card record (F-63: cards may exist outside the pool). */
+export function readCardEntries(raw, field = '能力卡') {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) fail(`${field}数据无效`);
+  if (raw.length > MAX_MODELS * 2) fail(`${field}条目过多`);
+  const seen = new Set();
+  return raw.map((item) => {
+    if (!isObject(item)) fail(`${field}条目无效`);
+    const entry = {
+      provider: textValue(item.provider, 200, `${field} provider`),
+      model: textValue(item.model, 200, `${field} model`),
+      purpose: typeof item.purpose === 'string' ? item.purpose.slice(0, MAX_PURPOSE) : '',
+      note: typeof item.note === 'string' ? item.note.slice(0, MAX_NOTE) : '',
+    };
+    // F-52: the source marker is Host-only and must survive every read.
+    if (item.source === 'preset' || item.source === 'user') entry.source = item.source;
+    if (item.presetVersion) entry.presetVersion = intValue(item.presetVersion, 1, 1000, `${field}预设版本`);
+    const key = routeKey(entry);
+    if (seen.has(key)) fail(`${field}存在重复模型`);
+    seen.add(key);
+    return entry;
+  });
+}
+
+/**
+ * F-63: capability cards live in their own collection, so a candidate that is
+ * not in the pool can still carry one. Pool entries mirror their card, so old
+ * records and the injected text keep the same shape.
+ */
+export function cardOf(library, route) {
+  if (!library || !route) return null;
+  return (library.cards || []).find((card) => sameRoute(card, route)) || null;
+}
+
+/** Write one capability card into the library's card collection. */
+export function setCard(library, route, value) {
+  const key = routeKey(route);
+  const cards = library.cards || (library.cards = []);
+  const existing = cards.find((card) => routeKey(card) === key);
+  const next = {
+    provider: route.provider,
+    model: route.model,
+    purpose: typeof value.purpose === 'string' ? value.purpose.slice(0, MAX_PURPOSE) : '',
+    note: typeof value.note === 'string' ? value.note.slice(0, MAX_NOTE) : '',
+  };
+  if (value.source === 'preset' || value.source === 'user') next.source = value.source;
+  if (value.presetVersion) next.presetVersion = value.presetVersion;
+  if (existing) Object.assign(existing, next);
+  else cards.push(next);
+  return next;
+}
+
+/**
+ * F-52: fill a newly pooled model with the matched preset when it has no
+ * custom content yet. A card the user wrote is never overwritten.
+ * Returns the adapted routes.
+ */
+export function applyPresetOnAdd(library, addedRoutes, presetIndex) {
+  const adapted = [];
+  for (const route of addedRoutes) {
+    const card = cardOf(library, route);
+    if (card && (card.purpose.trim() || card.note.trim())) continue;
+    if (card && card.source === 'user') continue;
+    const preset = presetIndex?.match(route);
+    if (!preset) continue;
+    setCard(library, route, { purpose: preset.scenarios, note: preset.limitations, source: 'preset', presetVersion: 1 });
+    adapted.push(route);
+  }
+  return adapted;
+}
+
+/**
+ * F-52/F-63: mirror the resolved pool entries into the card collection.
+ * The caller has already decided each entry's source (preset / user), so the
+ * card keeps exactly that marker and the pool entry stays its mirror.
+ */
+export function applySubmittedCards(library, submitted) {
+  for (const entry of submitted) {
+    const route = { provider: entry.provider, model: entry.model };
+    const stored = cardOf(library, route);
+    const purpose = typeof entry.purpose === 'string' ? entry.purpose : '';
+    const note = typeof entry.note === 'string' ? entry.note : '';
+    const source = entry.source === 'preset' || entry.source === 'user' ? entry.source : (stored?.source ?? '');
+    if (!purpose && !note && !source) continue;
+    if (!stored || stored.purpose !== purpose || stored.note !== note || stored.source !== source) {
+      setCard(library, route, { purpose, note, source });
+    }
+  }
+}
+
+/**
+ * F-62: restore one model's card to the preset content. Returns null when no
+ * preset matches, so the caller can report it instead of clearing the text.
+ */
+export function restorePresetCard(library, route, presetIndex) {
+  const preset = presetIndex?.match(route);
+  if (!preset) return null;
+  setCard(library, route, { purpose: preset.scenarios, note: preset.limitations, source: 'preset', presetVersion: 1 });
+  return preset;
+}
+
+/** Read the global new-session default record. */export function readDefault(raw) {
   if (!isObject(raw)) fail('新会话默认数据无效');
   if (raw.default === null || raw.default === undefined) return null;
   if (!isObject(raw.default)) fail('新会话默认内容无效');
@@ -408,6 +583,7 @@ export function buildPolicy(library, hostDepth) {
     enabled: true,
     mode: snapshot.type === 'inherit' ? 'inherit' : snapshot.type,
     preset: 'custom',
+    ...routingDefaultFields(snapshot),
     strategyText: snapshot.strategyText || '',
     maxDepth,
     maxActive,
@@ -442,6 +618,7 @@ export function snapshotForStrategy(strategy, pool, { now = Date.now(), limits =
     fixedModel: strategy.type === 'fixed' ? strategy.fixedModel : '',
     // Legacy v1 policies can carry a non-empty fixed-mode strategyText; never
     // drop it from the view or the effective snapshot.
+    ...routingDefaultFields(strategy),
     strategyText: strategy.strategyText || '',
     modelsInfo,
     capturedAt: now,
@@ -481,6 +658,7 @@ export function snapshotContent(snapshot) {
     models: (snapshot.models || []).map(routeOf),
     fixedProvider: snapshot.fixedProvider || '',
     fixedModel: snapshot.fixedModel || '',
+    ...routingDefaultFields(snapshot),
     strategyText: snapshot.strategyText || '',
     modelsInfo: (snapshot.modelsInfo || []).map((info) => ({
       provider: info.provider, model: info.model, name: info.name, purpose: info.purpose || '', note: info.note || '',
@@ -504,6 +682,7 @@ export function strategyContent(strategy) {
     models: (strategy.models || []).map(routeOf),
     fixedProvider: strategy.fixedProvider || '',
     fixedModel: strategy.fixedModel || '',
+    ...routingDefaultFields(strategy),
     strategyText: strategy.strategyText || '',
   };
 }
@@ -709,6 +888,7 @@ export function importDefault(value, { now = Date.now(), id, defaultRevision = n
     models,
     fixedProvider: value.fixedProvider || '',
     fixedModel: value.fixedModel || '',
+    ...(value.routingDefault && models.some(route => sameRoute(route, value.routingDefault)) ? routingDefaultFields(value) : {}),
     strategyText: value.strategyText || '',
     version: 1,
     // A default captured from a v1 legacy multi-candidate fixed strategy keeps
@@ -725,6 +905,127 @@ export function importDefault(value, { now = Date.now(), id, defaultRevision = n
   };
 }
 
+/**
+ * F-52: preset capability cards.
+ *
+ * A card identifies one vendor model (`maker` + `canonicalModel`) and lists
+ * the names that may select it. Matching is exact per registered name after a
+ * minimal normalization (trim + ASCII case fold): no wildcards, no suffix
+ * stripping, no similarity. A name that two cards claim is ambiguous and
+ * matches neither.
+ */
+export const PRESET_CARD_FORMAT = 'dsh-subagent-policy/capability-cards';
+export const PRESET_SOURCES = Object.freeze(['preset', 'user']);
+
+/** Minimal normalization: trim and ASCII case fold. Nothing else. */
+function normalizePresetName(value) {
+  if (typeof value !== 'string') return '';
+  return value.trim().replace(/[A-Z]/g, (letter) => letter.toLowerCase());
+}
+
+/**
+ * Read the preset card file. Unknown fields are tolerated; a malformed card
+ * file yields no cards rather than breaking the plugin.
+ */
+export function readPresetCards(raw) {
+  if (!isObject(raw)) return [];
+  if (raw.format !== PRESET_CARD_FORMAT) return [];
+  if (!Array.isArray(raw.cards)) return [];
+  const cards = [];
+  for (const item of raw.cards) {
+    if (!isObject(item)) continue;
+    const maker = typeof item.maker === 'string' ? item.maker.trim() : '';
+    const canonicalModel = typeof item.canonicalModel === 'string' ? item.canonicalModel.trim() : '';
+    if (!maker || !canonicalModel) continue;
+    const aliases = [];
+    for (const alias of Array.isArray(item.aliases) ? item.aliases : []) {
+      if (!isObject(alias)) continue;
+      const value = typeof alias.value === 'string' ? alias.value.trim() : '';
+      if (!value) continue;
+      if (alias.kind !== 'modelId' && alias.kind !== 'displayName') continue;
+      aliases.push({ kind: alias.kind, value });
+    }
+    if (!aliases.length) continue;
+    cards.push({
+      maker,
+      canonicalModel,
+      displayName: typeof item.displayName === 'string' ? item.displayName : canonicalModel,
+      aliases,
+      scenarios: typeof item.scenarios === 'string' ? item.scenarios : '',
+      limitations: typeof item.limitations === 'string' ? item.limitations : '',
+      sources: Array.isArray(item.sources) ? item.sources.filter((entry) => typeof entry === 'string') : [],
+    });
+  }
+  return cards;
+}
+
+/**
+ * Build the lookup used to match a route to a card. A name claimed by more
+ * than one card is dropped: an ambiguous name must not pick a card.
+ */
+export function buildPresetIndex(cards) {
+  const modelIdOwners = new Map();
+  const displayNameOwners = new Map();
+  const add = (owners, name, card) => {
+    if (!owners.has(name)) owners.set(name, new Set());
+    owners.get(name).add(card);
+  };
+  for (const card of cards || []) {
+    for (const alias of card.aliases) {
+      const name = normalizePresetName(alias.value);
+      if (!name) continue;
+      add(alias.kind === 'modelId' ? modelIdOwners : displayNameOwners, name, card);
+    }
+  }
+  const modelIds = new Map();
+  for (const [name, owners] of modelIdOwners) if (owners.size === 1) modelIds.set(name, [...owners][0]);
+  // A display name is only a fallback when it is unambiguous and does not
+  // contradict an API id: a name that any card claims as an API id never
+  // selects a card through the display-name path.
+  const displayNames = new Map();
+  for (const [name, owners] of displayNameOwners) {
+    if (owners.size !== 1) continue;
+    if (modelIdOwners.has(name)) continue;
+    displayNames.set(name, [...owners][0]);
+  }
+  return {
+    /** The card for a route, or null when nothing matches or the name is ambiguous. */
+    match(route) {
+      const name = normalizePresetName(route?.model);
+      if (!name) return null;
+      return modelIds.get(name) || displayNames.get(name) || null;
+    },
+    size: modelIds.size + displayNames.size,
+  };
+}
+
+/**
+ * F-52: decide the saved source of one pool entry.
+ *
+ * `preset` means the text came from a preset card; `user` means the user wrote
+ * or cleared it, and a preset must never refill it. The Host decides this from
+ * the stored entry and the submitted one — the client never sends a source.
+ */
+export function resolveEntrySource(previous, submitted, matchedCard) {
+  const previousSource = previous?.source === 'preset' ? 'preset' : previous?.source === 'user' ? 'user' : '';
+  const purpose = submitted?.purpose || '';
+  const note = submitted?.note || '';
+  if (!purpose && !note) {
+    // Cleared text. An entry that was already in the pool stays the user's, so
+    // no preset refills it later; a brand-new empty entry may take a preset.
+    if (previous) return 'user';
+    return matchedCard ? 'preset' : '';
+  }
+  if (previousSource === 'user') return 'user';
+  if (previousSource === 'preset') {
+    // Untouched preset text stays a preset; edited text becomes the user's.
+    const same = Boolean(matchedCard) && purpose === matchedCard.scenarios && note === matchedCard.limitations;
+    return same ? 'preset' : 'user';
+  }
+  // New entry with text the user wrote: theirs.
+  return 'user';
+}
+
 /** Pool save validation: additions need live Host authorization/availability. */
 export function validatePoolSave(nextPool, previousPool, activeSnapshot, { authorized, available }) {
   const prevKeys = new Set(previousPool.map(routeKey));
@@ -737,14 +1038,101 @@ export function validatePoolSave(nextPool, previousPool, activeSnapshot, { autho
       if (!avail.has(key)) fail(`不能把当前不可用的模型加入会话池：${entry.provider}/${entry.model}`);
     }
   }
-  if (activeSnapshot) {
-    const nextKeys = new Set(nextPool.map(routeKey));
-    const referenced = (activeSnapshot.models || []).filter((route) => !nextKeys.has(routeKey(route)));
-    if (referenced.length) {
-      fail(`无法保存：当前启用策略生效中的内容「${activeSnapshot.name}」仍引用 ${referenced.map((route) => `${route.provider}/${route.model}`).join('、')}；请先调整该策略或关闭策略`);
+  // F-59: removals are no longer blocked by enabled-strategy references. The
+  // caller recomputes the active snapshot in the same write transaction (see
+  // recomputeActiveAfterPoolSave); this function only gates additions.
+  return true;
+}
+
+/**
+ * F-59: recompute the enabled strategy's effective content after a pool save.
+ *
+ * The effective snapshot is `strategy references ∩ new pool` (exact route
+ * match). The saved strategy itself is never rewritten: its references, name,
+ * version and text stay as saved; only the derived snapshot follows the pool.
+ * Returns `{ kind:'none' }` when nothing is enabled, `{ kind:'unchanged' }`
+ * when every reference is still in the pool, `{ kind:'narrowed', snapshot }`
+ * with the rebuilt snapshot when some references left, and `{ kind:'stopped' }`
+ * when no reference remains (fixed target removed also lands here) — the
+ * caller then clears `library.active` and marks the strategy for the panel.
+ */
+export function recomputeActiveAfterPoolSave(library, nextPool, { now = Date.now() } = {}) {
+  if (!library.active) return { kind: 'none' };
+  const active = library.active;
+  const strategy = library.strategies.find((row) => row.id === active.strategyId);
+  if (!strategy) return { kind: 'none' };
+  const poolKeys = new Set(nextPool.map(routeKey));
+  const remaining = (active.snapshot.models || []).filter((route) => poolKeys.has(routeKey(route)));
+  // A fixed strategy whose target left the pool stops even when other legacy
+  // candidates remain: the target is what makes the strategy usable (matrix
+  // row 1; row 2 covers removing a non-target legacy candidate → narrowed).
+  const fixedGone = active.snapshot.type === 'fixed'
+    && !remaining.some((route) => sameRoute(route, { provider: active.snapshot.fixedProvider, model: active.snapshot.fixedModel }));
+  if (fixedGone || !remaining.length) return { kind: 'stopped', strategyId: active.strategyId };
+  if (remaining.length === (active.snapshot.models || []).length) return { kind: 'unchanged' };
+  const snapshot = {
+    ...clone(active.snapshot),
+    models: remaining,
+    modelsInfo: (active.snapshot.modelsInfo || []).filter((info) => poolKeys.has(routeKey(info))),
+    capturedAt: now,
+  };
+  if (snapshot.routingDefault && !remaining.some(route => sameRoute(route, snapshot.routingDefault))) delete snapshot.routingDefault;
+  return { kind: 'narrowed', snapshot, strategyId: active.strategyId };
+}
+
+/**
+ * F-59: apply the recompute outcome to the library inside the caller's write
+ * transaction. `narrowed` rebuilds `library.active` (appliedAt refreshed,
+ * version untouched — user-saved content did not change); `stopped` clears it
+ * and marks the strategy with `poolRemovalStop` for the panel. The legacy
+ * branch narrows the copy's `models` set only (user 2026-11-19 ruling):
+ * preset, model descriptions, cost, speed and source stay exactly as saved.
+ */
+export function applyPoolRemovalOutcome(library, outcome, nextPool, { now = Date.now() } = {}) {
+  if (outcome.kind === 'none' || outcome.kind === 'unchanged') return false;
+  if (outcome.kind === 'narrowed') {
+    library.active = { ...library.active, snapshot: outcome.snapshot, appliedAt: now };
+    const strategy = library.strategies.find((row) => row.id === outcome.strategyId);
+    if (strategy) delete strategy.poolRemovalStop;
+    const legacyPolicy = library.legacyPolicy;
+    if (legacyPolicy && (outcome.strategyId === LEGACY_STRATEGY_ID || outcome.strategyId === LEGACY_INHERIT_ID)) {
+      const poolKeys = new Set(nextPool.map(routeKey));
+      legacyPolicy.models = (legacyPolicy.models || []).filter((route) => poolKeys.has(routeKey(route)));
+    }
+    return true;
+  }
+  // stopped: fixed target or last reference removed. Clearing active is the
+  // disable; the marker only drives the panel's 「已停用」 badge and expires on
+  // its own once the strategy is enabled again.
+  const strategy = library.strategies.find((row) => row.id === outcome.strategyId);
+  if (strategy) strategy.poolRemovalStop = true;
+  if (library.legacyPolicy && (outcome.strategyId === LEGACY_STRATEGY_ID || outcome.strategyId === LEGACY_INHERIT_ID)) {
+    library.legacyPolicy = null;
+  }
+  library.active = null;
+  return true;
+}
+
+/** Count strategy-level impacts of a pool save for the panel's summary notice. */
+export function poolRemovalImpactCounts(library, nextPool) {
+  const poolKeys = new Set(nextPool.map(routeKey));
+  let narrowed = 0;
+  let stopped = 0;
+  let needsAdjust = 0;
+  for (const strategy of library.strategies) {
+    const refs = strategy.models || [];
+    const remaining = refs.filter((route) => poolKeys.has(routeKey(route)));
+    if (remaining.length === refs.length) continue;
+    const isActive = !!library.active && library.active.strategyId === strategy.id;
+    if (!remaining.length || (strategy.type === 'fixed' && !remaining.some((route) => sameRoute(route, { provider: strategy.fixedProvider, model: strategy.fixedModel })))) {
+      if (isActive) stopped += 1; else needsAdjust += 1;
+    } else if (isActive) {
+      narrowed += 1;
+    } else {
+      needsAdjust += 1;
     }
   }
-  return true;
+  return { narrowed, stopped, needsAdjust, total: narrowed + stopped + needsAdjust };
 }
 
 export { requestObject };

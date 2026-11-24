@@ -22,20 +22,30 @@ window.__ModuleLoader__.load({
       activeLine: 'Enabled “{name}” · {type} · {target}', targetFixed: '{name}', targetAuto: '{count} candidates',
       strategies: 'Strategies', countSuffix: '{count} saved', newStrategy: 'New strategy', emptyStrategies: 'No strategies yet. Create one.',
       activeBadge: 'Currently enabled', defaultBadge: 'New-session default', defaultStaleBadge: 'New-session default (source not updated)', adjustBadge: 'Needs adjustment', stateOff: 'Not enabled',
+      projectScopeBadge: 'Project scope',
+      stoppedBadge: 'Disabled',
+      poolRemovalStopFixed: 'Disabled (the fixed model left the session pool)', poolRemovalStopAuto: 'Disabled (every referenced model left the session pool)',
+      poolRemovalStopHint: '{reason}: {models} left the session pool and no longer applies; the strategy is kept and can be enabled again after the references are adjusted.',
+      poolRemovedHint: 'Removed from the model pool: {models}; the reference is kept and must be adjusted before enabling.',
+      poolNarrowedHint: 'Currently enabled: the effective content is narrowed to the remaining candidates {models}; it takes effect on the next main-Agent model call.',
+      effectiveContent: 'Currently effective content: {models} ({count} candidate(s)).', effectiveContentFixed: 'Currently effective content: {models} ({count} fixed model).',
       legacyBadge: 'Legacy follow (read-only)', legacyHint: 'This legacy strategy followed the parent model. Saving it as fixed or Agent-chosen converts it explicitly.',
       edit: 'Edit', editLabel: 'Edit strategy: {name}', enable: 'Enable', enableLabel: 'Enable strategy: {name}', disable: 'Disable', disableLabel: 'Disable strategy: {name}',
       setDefault: 'Set as new-session default', setDefaultLabel: 'Set as new-session default: {name}', delete: 'Delete', deleteLabel: 'Delete strategy: {name}',
-      deleteActiveHint: 'Currently enabled; close it before deleting.', deleteDefaultHint: 'Source of the new-session default; change or clear the default before deleting.', needsAdjustHint: 'Referenced models are not in the session pool; adjust it before enabling.',
+      deleteActiveHint: 'Currently enabled; close it before deleting.', deleteDefaultHint: 'Source of the new-session default; change or clear the default before deleting.',
       newStrategyTitle: 'New strategy', editStrategyTitle: 'Edit strategy', back: '← Back to strategies', backModels: '← Back to models', unsavedBadge: 'Not saved', savedBadge: 'Saved',
       detailSubNew: 'Saving still does not enable it; after enabling, it takes effect on the next main-Agent model call.',
       detailSubSaved: 'Saving only updates the strategy library; after enabling, it takes effect on the next main-Agent model call.',
       detailSubActive: 'Currently enabled in this session; saving takes effect on the next main-Agent model call.',
+      detailSubStopped: '{reason}: it no longer applies; it can be enabled again after the references are adjusted.',
       convertedHint: 'This legacy strategy followed the parent model. Saving as fixed or Agent-chosen is an explicit conversion.',
       nameLabel: 'Strategy name', namePlaceholder: 'e.g. Implementation default', typeLabel: 'Strategy type', typeFixed: 'Fixed model', typeAuto: 'Agent chooses',
       typeHintFixed: 'Delegations use only the selected model; no automatic replacement.', typeHintAuto: 'Pick candidates from the pool and describe the choice; no scoring or silent fallback.',
       fixedPanel: 'Fixed model', fixedHint: 'Choose one model from the saved session pool.', autoPanel: 'Candidate subset', autoHint: 'Pick candidates from the session pool; the agent decides only inside this subset.',
       noPoolFixed: 'The session pool is empty. Add and save models on the model pool page first.', noPoolAuto: 'The session pool is empty. Add and save models on the model pool page first.',
-      textLabel: 'Selection note', textHint: 'The note only informs selection; it grants no new authorization.', textCount: '{count}/{max}',
+      routingLabel: 'Default model', routingNone: 'No default model', routingEmpty: 'Select candidates first', routingHint: 'Used only when the routing LLM cannot pick a candidate from the capability cards. Leave it unset to refuse such a delegation.', routingRulesLine: 'Routing rules: {value}', routingDefaultLine: 'Default model: {value}', rulesEmpty: 'Not provided', defaultUnset: 'Not set', errRouting: 'Pick the default model from the checked candidates.',
+      sourceLabel: 'Decision source', sourceLlm: 'LLM capability-card selection', sourceDefault: 'Default model fallback',
+      textLabel: 'Routing rules', textHint: 'The routing LLM uses the task, routing rules and selected candidates’ capability cards to choose a model. If it cannot choose, it uses the default model; if no default model is available, delegation is refused.', textCount: '{count}/{max}',
       saveStrategy: 'Save strategy', discard: 'Discard changes', cancelEdit: 'Cancel',
       formError: 'Correct the marked fields before saving.', errNameEmpty: 'Enter a strategy name.', errNameLong: 'The strategy name is too long.', errNameDup: 'Another strategy already uses this name.',
       errFixed: 'Select one fixed model.', errModels: 'Select at least one candidate.', errText: 'The selection note is too long.',
@@ -46,15 +56,21 @@ window.__ModuleLoader__.load({
       modelsTitle: 'Model pool', modelsSub: 'Select the models this session allows as strategy candidates.', modelCount: '{count} candidates', modelCountUnavailable: '{count} candidates · {unavailable} unavailable',
       selectAll: 'Select all', clearAll: 'Clear all', selectedCount: 'Selected {count}', savedCount: 'Saved: {count} models',
       poolDirty: 'Unsaved model-pool changes; they take effect only after saving.', poolImpact: 'The pool matches the saved state.',
-      poolImpactRemove: 'On save, remove: {items}.', poolImpactProtect: 'The currently enabled strategy references some removals; saving will be blocked.',
+      poolImpactRemove: 'On save, remove: {items}.', poolImpactProtect: 'The enabled strategy references some of these removals: a partial removal narrows its effective content to the remaining candidates, and removing every reference (or the fixed target) switches that strategy to disabled.',
       poolImpactAdd: 'On save, add: {items}; no strategy is changed automatically.', poolError: 'The model pool was not saved.',
-      poolBlockedActive: 'Cannot save: the currently enabled strategy “{name}” still references {models}. Adjust that reference, or close the strategy before removing them.',
       savePool: 'Save model pool', discardPool: 'Discard pool changes', emptyModels: 'No candidates are available in this session.',
       poolSync: 'Refresh candidates',
+      poolGroupCount: '{count} candidates · {selected} selected',
+      poolGroupSelect: 'Select group',
+      poolGroupClear: 'Clear group',
+      poolGroupSelectLabel: 'Select all {provider} candidates',
+      poolGroupClearLabel: 'Clear all {provider} candidates',
       poolSynced: 'Revalidated: {count} candidate(s) currently unavailable ({names}); they are kept at the bottom of the list and return to their position after recovery.', poolSyncedNone: 'Revalidated: all candidates are currently available.',
       unavailableKeptHint: 'Currently not authorized or unavailable; usable again after recovery.',
       poolToggleLabel: 'Model pool: {name}', poolToggleLabelStale: 'Model pool: {name} (currently unavailable)', abilityCard: 'Ability card', abilityCardLabel: 'Open ability card: {name} ({provider})', abilityTitle: 'Ability card',
-      purposeLabel: 'Short description', noteLabel: 'General usage note', noPurpose: 'No purpose recorded',
+      purposeLabel: 'Short description', noteLabel: 'Ability card', noPurpose: 'No ability card yet',
+      presetBadge: 'Preset', userSourceBadge: 'User written', presetSourceHint: 'Filled from a preset card; editing it keeps your text.', presetSourceEmpty: 'This model has no preset card.',
+      presetDefaultLabel: 'Default capability card', restorePreset: 'Enable default capability', presetMissing: 'This model has no default capability card.', presetRestored: 'Default capability card enabled; it takes effect on the next main-Agent model call.',
       noteHintUseCase: 'Describe use cases and limits only; do not record prices or performance conclusions.',
       noteHintEffect: 'Saving the note only: it takes effect on the next main-Agent model call.',
       saveNote: 'Save note', discardNote: 'Discard note changes', noteSaved: 'Ability card saved; it takes effect on the next main-Agent model call.',
@@ -84,6 +100,12 @@ window.__ModuleLoader__.load({
       hostConflict: 'Saved session limits (depth {depth} · concurrency {active}) exceed the current Host ceiling (depth {ceilingDepth} · concurrency {ceilingActive}). New enable requests are rejected; enabled content is not stopped automatically. Adjust and save the limits on the model pool page.',
       hostConflictActive: ' Enabled content is not stopped or reverted automatically.',
       defaultTitle: 'New-session default', defaultLabelOn: 'New-session default: set', defaultLabelOff: 'New-session default: not set',
+      effectiveTitle:'Effective strategy for this session', editTitle:'Editing', sessionTarget:'This session', projectTarget:'Project', hostTarget:'Host default', scopeTitle: 'Enable scope', scopeLabelOn: 'Enable scope: every session in the project', scopeLabelOff: 'Enable scope: this session only',
+      scopeSession: 'This session only. Project: {title} (turning it on makes the project’s sessions share it).',
+      scopeProjectOn: 'Every session in the project: {path}. The project record is shared; this session’s own record is kept.',
+      scopeProjectHint: 'Only sessions without an enabled strategy use the project strategy. Turning this off keeps the shared record.',
+      scopeDefaultSkipped: 'While the project strategy is applied, new sessions in this project follow it and skip the new-session default. Sessions outside the project still use the default.',
+      scopeUnavailable: 'This session belongs to no registered workspace, so the project scope is unavailable. The session scope still works.',
       noDefault: 'Choose a strategy in the strategy pool.',
       defaultSummary: 'Set to “{name}” · {type}', defaultLimitsInline: ' · depth {depth} · concurrency {active}',
       defaultConflict: 'The limits stored with the default (depth {depth} · concurrency {active}) exceed the current Host ceiling (depth {ceilingDepth} · concurrency {ceilingActive}): adjust before use. The original values are kept and are not widened automatically.',
@@ -105,7 +127,7 @@ window.__ModuleLoader__.load({
       savedStrategy: 'Saved “{name}”. After enabling, it takes effect on the next main-Agent model call.', savedActive: 'Saved; it takes effect on the next main-Agent model call.',
       deletedNotice: 'Deleted “{name}”.',
       poolSaved: 'Model pool saved: {count} selected; it takes effect on the next main-Agent model call.',
-      poolAffected: 'Models referenced by {names} are no longer in the session pool; adjust them before enabling.',
+      poolSavedAffected: 'Model pool saved: {count} selected; affected strategies: {affected} (narrowed {narrowed} / stopped {stopped} / needs adjustment {adjust}); it takes effect on the next main-Agent model call.',
       poolNoChanges: 'No model-pool changes to save.',
       limitsSaved: 'Session limits saved: depth {depth} · concurrency {active}; it takes effect on the next main-Agent model call.',
       noChanges: 'No changes to save.', draftPreserved: 'Server state refreshed; unsaved drafts were preserved.', refreshed: 'Server state refreshed.', readCancelled: 'Reading cancelled; the panel will read again when reopened.',
@@ -126,20 +148,30 @@ window.__ModuleLoader__.load({
       activeLine: '已启用「{name}」· {type} · {target}', targetFixed: '{name}', targetAuto: '{count} 个候选',
       strategies: '策略池', countSuffix: '{count} 份', newStrategy: '新增策略', emptyStrategies: '暂无策略。可新增一份。',
       activeBadge: '当前启用', defaultBadge: '新会话默认', defaultStaleBadge: '新会话默认（来源未更新）', adjustBadge: '需调整', stateOff: '未启用',
+      projectScopeBadge: '项目级生效',
+      stoppedBadge: '已停用',
+      poolRemovalStopFixed: '已停用（固定模型已移出会话池）', poolRemovalStopAuto: '已停用（引用的模型已全部移出会话池）',
+      poolRemovalStopHint: '{reason}：{models} 已移出会话池，不再生效；策略保留，调整引用后可重新启用。',
+      poolRemovedHint: '已从模型池移除：{models}；引用保留，需调整后才能启用。',
+      poolNarrowedHint: '当前启用中：生效内容已收窄为剩余候选 {models}；下次发起模型调用时生效。',
+      effectiveContent: '当前生效内容：{models}（{count} 个候选）。', effectiveContentFixed: '当前生效内容：{models}（{count} 个固定模型）。',
       legacyBadge: '旧版跟随（只读）', legacyHint: '该旧版策略跟随父模型；保存为固定或 Agent 自选即为显式转换。',
       edit: '编辑', editLabel: '编辑策略：{name}', enable: '启用', enableLabel: '启用策略：{name}', disable: '停用', disableLabel: '停用策略：{name}',
       setDefault: '设为新会话默认', setDefaultLabel: '设为新会话默认：{name}', delete: '删除', deleteLabel: '删除策略：{name}',
-      deleteActiveHint: '当前启用，删除前需先关闭。', deleteDefaultHint: '新会话默认来源，删除前需先更改或清除新会话默认。', needsAdjustHint: '引用的模型不在会话池，启用前需调整。',
+      deleteActiveHint: '当前启用，删除前需先关闭。', deleteDefaultHint: '新会话默认来源，删除前需先更改或清除新会话默认。',
       newStrategyTitle: '新增策略', editStrategyTitle: '编辑策略', back: '← 返回策略列表', backModels: '← 返回模型池', unsavedBadge: '未保存', savedBadge: '已保存',
       detailSubNew: '保存后仍不会自动启用；启用后，在下一次主 Agent 发起模型调用时生效。',
       detailSubSaved: '保存只更新策略库；启用后，在下一次主 Agent 发起模型调用时生效。',
       detailSubActive: '当前会话启用中；保存后，在下一次主 Agent 发起模型调用时生效。',
+      detailSubStopped: '{reason}：不再生效；调整引用后可重新启用。',
       convertedHint: '当前为旧版跟随策略；保存为固定或 Agent 自选会显式转换。',
       nameLabel: '策略名称', namePlaceholder: '例如：实现默认', typeLabel: '策略类型', typeFixed: '固定模型', typeAuto: 'Agent 自选',
       typeHintFixed: '委派时只使用选中的这一个模型，不做自动换选。', typeHintAuto: '从会话池勾选候选并写下选择说明；不做评分或静默回退。',
       fixedPanel: '固定模型', fixedHint: '从已保存的会话池中单选一个模型。', autoPanel: '候选子集', autoHint: '从会话池勾选候选；Agent 自选只在这个子集内决策。',
       noPoolFixed: '会话池为空，请先在「模型池」勾选并保存。', noPoolAuto: '会话池为空，请先在「模型池」勾选并保存。',
-      textLabel: '选择说明', textHint: '说明只供决策参考，不扩大授权。', textCount: '{count}/{max}',
+      routingLabel: '默认模型', routingNone: '不设置默认模型', routingEmpty: '请先勾选候选模型', routingHint: '仅在路由 LLM 无法从能力卡选出候选时使用；留空则该情况下拒绝委派。', routingRulesLine: '路由规则：{value}', routingDefaultLine: '默认模型：{value}', rulesEmpty: '未填写', defaultUnset: '未设置', errRouting: '请从已勾候选中选择默认模型。',
+      sourceLabel: '判定来源', sourceLlm: 'LLM 按能力卡选择', sourceDefault: '默认模型兜底',
+      textLabel: '路由规则', textHint: '路由 LLM 根据任务、路由规则和已勾候选的能力卡选择模型；无法选定时使用默认模型；没有可用的默认模型则拒绝委派。', textCount: '{count}/{max}',
       saveStrategy: '保存策略', discard: '放弃修改', cancelEdit: '取消',
       formError: '请修正标记的字段后再保存。', errNameEmpty: '请填写策略名称。', errNameLong: '策略名称过长。', errNameDup: '已有同名策略，请换一个名称。',
       errFixed: '请选择一个固定模型。', errModels: '至少勾选一个候选模型。', errText: '选择说明过长。',
@@ -150,20 +182,26 @@ window.__ModuleLoader__.load({
       modelsTitle: '模型池', modelsSub: '勾选当前会话允许作为策略候选的模型。', modelCount: '{count} 个候选', modelCountUnavailable: '{count} 个候选 · {unavailable} 个不可用',
       selectAll: '全选', clearAll: '取消全选', selectedCount: '已选 {count} 个', savedCount: '已保存：{count} 个模型',
       poolDirty: '有未保存的模型池修改；保存前不生效。', poolImpact: '模型池与已保存一致。',
-      poolImpactRemove: '保存后移除：{items}。', poolImpactProtect: '当前启用策略引用部分待移除模型，保存会被阻止。',
+      poolImpactRemove: '保存后移除：{items}。', poolImpactProtect: '当前启用策略的引用会一并移除：部分移除时生效内容收窄为剩余候选，全部移除（或固定目标被移除）时该策略切换为禁用状态。',
       poolImpactAdd: '保存后加入：{items}；不会自动加入任何策略。', poolError: '模型池未保存。',
-      poolBlockedActive: '无法保存：当前启用策略「{name}」仍引用{models}。请先在策略中调整该引用，或关闭当前策略后再移除。',
       savePool: '保存模型池', discardPool: '放弃池修改', emptyModels: '当前会话没有可用候选。',
       poolSync: '刷新候选',
+      poolGroupCount: '{count} 个候选 · 已选 {selected}',
+      poolGroupSelect: '全选本组',
+      poolGroupClear: '取消本组',
+      poolGroupSelectLabel: '全选 {provider} 组候选',
+      poolGroupClearLabel: '取消 {provider} 组全部候选',
       poolSynced: '重新校验完成：{count} 个候选当前不可用（{names}）；已保留并置于列表底部，恢复后自动回到原位。', poolSyncedNone: '重新校验完成：全部候选当前可用。',
       unavailableKeptHint: '当前未获宿主授权或不可用；恢复后可启用。',
       poolToggleLabel: '模型池：{name}', poolToggleLabelStale: '模型池：{name}（当前不可用）', abilityCard: '能力卡', abilityCardLabel: '打开能力卡：{name}（{provider}）', abilityTitle: '能力卡',
-      purposeLabel: '简短说明', noteLabel: '通用使用说明', noPurpose: '未填写用途',
+      purposeLabel: '简短说明', noteLabel: '能力卡', noPurpose: '未填写能力卡',
+      presetBadge: '预设', userSourceBadge: '用户填写', presetSourceHint: '内容来自预设能力卡；你修改后以你的内容为准。', presetSourceEmpty: '该模型没有预设能力卡。',
+      presetDefaultLabel: '默认能力卡', restorePreset: '启用默认能力', presetMissing: '该模型没有默认能力卡。', presetRestored: '已启用默认能力卡，下次发起模型调用时生效。',
       noteHintUseCase: '只写使用场景与限制，不记录价格或性能结论。',
       noteHintEffect: '仅保存说明：保存后，在下一次主 Agent 发起模型调用时生效。',
       saveNote: '保存说明', discardNote: '放弃说明修改', noteSaved: '已保存能力卡，下次发起模型调用时生效。',
       reasoningLine: '思考等级：{names}', reasoningDefault: '（默认 {name}）', reasoningNone: '思考等级：—',
-      unavailableHint: '当前未获宿主授权或不可用，不能加入会话池。',
+      unavailableHint: '当前会话无权使用或模型不可用，不能加入会话池。',
       limitsTitle: '子智能体并发与递归', sharedBadge: '会话共用',
       limitsSub: '整个会话共用；实际委派须同时满足宿主上限与本会话限制。',
       hostCeiling: '宿主上限：最大递归深度 {depth}；并发子智能体数量 {active}（已从宿主读取）。',
@@ -188,6 +226,12 @@ window.__ModuleLoader__.load({
       hostConflict: '已保存的本会话限制（深度 {depth} · 并发 {active}）超出当前宿主上限（深度 {ceilingDepth} · 并发 {ceilingActive}）：新的启用会被拒绝；已启用内容不会自动停用。请到「模型池」调整并保存本会话限制。',
       hostConflictActive: ' 已启用内容不会因此被自动停用或回退。',
       defaultTitle: '新会话默认', defaultLabelOn: '新会话默认：已设置', defaultLabelOff: '新会话默认：未设置',
+      effectiveTitle:'本会话当前生效', editTitle:'正在编辑', sessionTarget:'本会话', projectTarget:'项目', hostTarget:'宿主默认', scopeTitle: '使能范围', scopeLabelOn: '使能范围：项目内全会话', scopeLabelOff: '使能范围：仅本会话',
+      scopeSession: '仅本会话使用。所在项目：{title}（开启后项目内全部会话共用）。',
+      scopeProjectOn: '项目内全会话：{path}。项目级记录由本项目共享，本会话自身的记录保留。',
+      scopeProjectHint: '只有未独立启用策略的会话才使用项目策略。关闭项目范围会保留共享记录。',
+      scopeDefaultSkipped: '项目策略启用期间，本项目内的新会话直接使用项目策略，不导入「新会话默认」；项目外的会话仍使用默认。',
+      scopeUnavailable: '本会话不属于任何已注册工作区，项目级不可用；单会话范围仍可使用。',
       noDefault: '请在策略池中进行选择。',
       defaultSummary: '已设置「{name}」· {type}', defaultLimitsInline: ' · 深度 {depth} · 并发 {active}',
       defaultConflict: '默认内容保存的限制（深度 {depth} · 并发 {active}）超出当前宿主上限（深度 {ceilingDepth} · 并发 {ceilingActive}）：需调整后使用；原值保留，不会自动放宽。',
@@ -209,7 +253,7 @@ window.__ModuleLoader__.load({
       savedStrategy: '已保存「{name}」。启用后，下次发起模型调用时生效。', savedActive: '已保存，下次发起模型调用时生效。',
       deletedNotice: '已删除「{name}」。',
       poolSaved: '已保存模型池：已选 {count} 个；下次发起模型调用时生效。',
-      poolAffected: '{names}引用的模型已不在会话池，需调整后才能启用。',
+      poolSavedAffected: '已保存模型池：已选 {count} 个；{affected} 份策略受影响（收窄 {narrowed} / 停用 {stopped} / 需调整 {adjust}）；下次发起模型调用时生效。',
       poolNoChanges: '没有需要保存的模型池修改。',
       limitsSaved: '已保存本会话限制：深度 {depth} · 并发 {active}；下次发起模型调用时生效。',
       noChanges: '没有需要保存的修改。', draftPreserved: '服务端状态已刷新，未保存草稿已保留。', refreshed: '服务端状态已刷新。', readCancelled: '已取消读取；重新打开面板时会再次读取。',
@@ -284,6 +328,11 @@ window.__ModuleLoader__.load({
       .lezsp .lezsp-choice-body{display:grid;gap:1px;min-width:0}.lezsp .lezsp-choice-name{font-size:12px;font-weight:700}
       .lezsp .lezsp-pool-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:start;padding:8px 9px;border:1px solid var(--dsw-alias-border-l2);border-radius:9px;background:var(--dsw-alias-bg-layer-1);min-width:0}
       .lezsp .lezsp-pool-row.stale{border-color:var(--dsw-alias-state-warn-primary,var(--dsw-alias-label-primary))}
+      /* F-57: provider group header inside the model pool */
+      .lezsp .lezsp-pool-group{margin:2px 0}
+      .lezsp .lezsp-pool-group-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 9px;border:1px solid var(--dsw-alias-border-l2);border-radius:9px;background:var(--dsw-alias-bg-layer-2,var(--dsw-alias-bg-layer-1))}
+      .lezsp .lezsp-pool-group-name{font-weight:700}
+      .lezsp .lezsp-pool-group-head .lezsp-muted{margin-right:auto}
       .lezsp .lezsp-empty{padding:14px;border:1px dashed var(--dsw-alias-border-l2);border-radius:10px;color:var(--dsw-alias-label-tertiary);font-size:12px;text-align:center}
       .lezsp .lezsp-record{border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-1);min-width:0}
       .lezsp .lezsp-record summary{padding:9px 10px;cursor:pointer;list-style-position:inside}.lezsp .lezsp-record-body{padding:0 10px 10px;border-top:1px solid var(--dsw-alias-border-l2)}
@@ -348,6 +397,42 @@ window.__ModuleLoader__.load({
       for (const key of a) if (!b.has(key)) return false;
       return true;
     };
+    // F-59: references that are no longer in the saved pool. The Host marks the
+    // same condition as `needsAdjust`; the panel recomputes it for the hints
+    // that name the removed models.
+    function staleRefsOf(strategy, pool) {
+      const keys = new Set((pool || []).map(keyOf));
+      const stale = [];
+      for (const route of (strategy && strategy.models) || []) {
+        if (route && typeof route.provider === 'string' && typeof route.model === 'string' && !keys.has(keyOf(route))) stale.push(route);
+      }
+      const fixed = strategy && strategy.type === 'fixed' && strategy.fixedProvider && strategy.fixedModel
+        ? { provider: strategy.fixedProvider, model: strategy.fixedModel } : null;
+      if (fixed && !keys.has(keyOf(fixed)) && !stale.some((route) => sameRoute(route, fixed))) stale.push(fixed);
+      return stale;
+    }
+    // F-59: how many strategies a pool save affected, by outcome. The Host
+    // recomputes the effective content and marks a disabled strategy with
+    // `poolRemovalStop`; the panel only counts what the snapshots say.
+    function poolRemovalImpacts(before, after) {
+      const none = { narrowed: 0, stopped: 0, adjust: 0, total: 0 };
+      if (!before || !after || !before.management || !after.management) return none;
+      const oldKeys = new Set(before.management.pool.map(keyOf));
+      const newKeys = new Set(after.management.pool.map(keyOf));
+      const removed = new Set([...oldKeys].filter((key) => !newKeys.has(key)));
+      if (!removed.size) return none;
+      const activeId = after.management.active ? after.management.active.strategyId : null;
+      let narrowed = 0;
+      let stopped = 0;
+      let adjust = 0;
+      for (const strategy of after.management.strategies || []) {
+        if (!(strategy.models || []).some((route) => removed.has(keyOf(route)))) continue;
+        if (strategy.poolRemovalStop === true) stopped += 1;
+        else if (activeId && strategy.id === activeId) narrowed += 1;
+        else adjust += 1;
+      }
+      return { narrowed, stopped, adjust, total: narrowed + stopped + adjust };
+    }
     const isStale = (generation, serial, alive) => !alive || generation !== serial;
     const PLUGIN_MAX_ACTIVE = 32;
     function hostCapacity(host) {
@@ -366,12 +451,34 @@ window.__ModuleLoader__.load({
       const match = typeof url === 'string' ? url.match(/^https:\/\/github\.com\/([^/?#]+)\/([^/?#]+?)\/?$/) : null;
       return match ? `${match[1]}/${match[2]}` : '';
     }
-    function strategyDraftOf(strategy) {
+    function strategyDraftOf(strategy, snap) {
       const type = strategy ? (strategy.type === 'inherit' ? 'fixed' : strategy.type) : 'fixed';
       const allModels = new Set((strategy && strategy.models || []).map(keyOf));
       const fixedRoute = strategy && strategy.type === 'fixed' ? keyOf({ provider: strategy.fixedProvider, model: strategy.fixedModel }) : (allModels.size ? [...allModels][0] : '');
       const models = type === 'fixed' ? new Set(fixedRoute ? [fixedRoute] : []) : allModels;
-      return { id: strategy && strategy.id ? strategy.id : null, name: strategy && strategy.name ? strategy.name : '', type, models, fixedRoute, strategyText: strategy && strategy.strategyText ? strategy.strategyText : '', dirty: false, legacy: Boolean(strategy && strategy.type === 'inherit'), converting: Boolean(strategy && strategy.type === 'inherit') };
+      // F-56: a new draft pre-fills a typed default name (固-N / 灵-N, counted
+      // over the strategies of the same type, skipping taken names). Editing an
+      // existing strategy never touches its name; `lastAutoName` tracks the
+      // auto-filled value so a type switch follows only while the user has not
+      // renamed the draft.
+      let name = strategy && strategy.name ? strategy.name : '';
+      let lastAutoName = '';
+      if (!strategy && snap) {
+        name = defaultStrategyName(type, snap);
+        lastAutoName = name;
+      }
+      // F-54: the fallback route is optional and only lives on auto drafts.
+      const routingDefault = type === 'auto' && strategy && strategy.routingDefault ? keyOf(strategy.routingDefault) : '';
+      return { id: strategy && strategy.id ? strategy.id : null, name, type, models, fixedRoute, routingDefault, strategyText: strategy && strategy.strategyText ? strategy.strategyText : '', dirty: false, legacy: Boolean(strategy && strategy.type === 'inherit'), converting: Boolean(strategy && strategy.type === 'inherit'), lastAutoName };
+    }
+    // F-56: next default name for a draft of `type` — same-type count + 1,
+    // skipping names that already exist (re-deletion may leave gaps).
+    function defaultStrategyName(type, snap) {
+      const prefix = type === 'fixed' ? '固-' : '灵-';
+      const taken = new Set(snap.management.strategies.map((row) => row.name));
+      let n = snap.management.strategies.filter((row) => row.type === type).length + 1;
+      while (taken.has(prefix + n)) n += 1;
+      return prefix + n;
     }
     function assertSnapshotShape(snap, sessionId) {      if (!snap || typeof snap !== 'object' || snap.sessionId !== sessionId) {
         const error = new Error(snap && snap.sessionId ? 'stale-session' : 'bad-snapshot');
@@ -409,6 +516,9 @@ window.__ModuleLoader__.load({
         if (!strategy || typeof strategy.id !== 'string' || typeof strategy.name !== 'string'
           || !['fixed', 'auto', 'inherit'].includes(strategy.type) || !Number.isSafeInteger(strategy.version)
           || !Array.isArray(strategy.models) || !strategy.models.every((route) => route && typeof route.provider === 'string' && typeof route.model === 'string')) throw new Error('bad-snapshot');
+        // F-59: the Host marks a strategy it disabled because its references
+        // left the pool. The field is optional so older Host snapshots stay valid.
+        if (strategy.poolRemovalStop !== undefined && typeof strategy.poolRemovalStop !== 'boolean') throw new Error('bad-snapshot');
       }
       if (management.limits !== null && management.limits !== undefined) {
         if (!whole(management.limits.maxDepth) || !Number.isSafeInteger(management.limits.maxActive)) throw new Error('bad-snapshot');
@@ -555,7 +665,10 @@ window.__ModuleLoader__.load({
             const isCurrent = () => !isStale(generation, serial.current, alive.current) && !controller.signal.aborted && !tabSignal?.aborted;
             commit((state) => ({ ...state, busy: kind, error: null, notice: null, noticeKind: '' }));
             try {
-              const snap = await request(body || { action: 'read' }, controller.signal);
+              const payload = body || { action: 'read' };
+              const prev = uiRef.current.snap;
+              const scoped = !prev || prev.effective ? { editTarget: prev?.management.editTarget || 'session', ...payload } : payload;
+              const snap = await request(scoped, controller.signal);
               if (!isCurrent()) return;
               commit((state) => {
                 const kept = dirtyOf(state);
@@ -564,6 +677,7 @@ window.__ModuleLoader__.load({
                   lastActiveId: snap.management.active?.strategyId || state.lastActiveId || null,
                   lastDefault: snap.defaultSetting.snapshot || state.lastDefault || null,
                 };
+                if (kind === 'read' && reset.retarget) return {...state,...patch,...draftsFrom(snap),detail:null,strategyDraft:null,modelDraft:null,lastActiveId:snap.management.active?.strategyId || null};
                 if (kind === 'read') {
                   patch.notice = kept ? t('draftPreserved') : null;
                   return kept ? { ...state, ...patch } : { ...state, ...patch, ...draftsFrom(snap) };
@@ -575,18 +689,18 @@ window.__ModuleLoader__.load({
                   const key = reset.notice || 'refreshed';
                   if ((key === 'savedStrategy' || key === 'savedActive') && state.snap && snap.revision === state.snap.revision) notice = t('noChanges');
                   else if (key === 'poolSaved') {
-                    notice = fmt(t('poolSaved'), { count: snap.management.pool.length });
-                    if (state.snap) {
-                      const oldKeys = new Set(state.snap.management.pool.map(keyOf));
-                      const newKeys = new Set(snap.management.pool.map(keyOf));
-                      const removed = new Set([...oldKeys].filter((oldKey) => !newKeys.has(oldKey)));
-                      const affected = snap.management.strategies.filter((strategy) => strategy.id !== snap.management.active?.strategyId
-                        && (strategy.models || []).some((route) => removed.has(keyOf(route))));
-                      if (affected.length) {
-                        notice += ' ' + fmt(t('poolAffected'), { names: affected.map((strategy) => `「${strategy.name}」`).join('、') });
-                        noticeKind = 'warn';
-                      }
-                    }
+                    // F-59: a pool save is never blocked by strategy references.
+                    // The Host recomputes the effective content and the panel
+                    // reports the affected strategies as counts (the details stay
+                    // on the cards and in the editor).
+                    const impacts = poolRemovalImpacts(state.snap, snap);
+                    notice = impacts.total
+                      ? fmt(t('poolSavedAffected'), {
+                        count: snap.management.pool.length, affected: impacts.total,
+                        narrowed: impacts.narrowed, stopped: impacts.stopped, adjust: impacts.adjust,
+                      })
+                      : fmt(t('poolSaved'), { count: snap.management.pool.length });
+                    if (impacts.total) noticeKind = 'warn';
                   } else notice = noticeFor(key, snap, state, reset);
                 }
                 patch.notice = notice;
@@ -606,7 +720,7 @@ window.__ModuleLoader__.load({
                   const draft = state.strategyDraft;
                   const saved = (draft?.id ? snap.management.strategies.find((row) => row.id === draft.id) : null)
                     || snap.management.strategies.find((row) => row.name === (draft?.name || '').trim());
-                  patch.strategyDraft = saved ? strategyDraftOf(saved) : null;
+                  patch.strategyDraft = saved ? strategyDraftOf(saved, snap) : null;
                   patch.detail = saved ? { kind: 'strategy', id: saved.id } : null;
                 }
                 if (reset.pool) patch.poolDraft = draftsFrom(snap).poolDraft;
@@ -677,7 +791,14 @@ window.__ModuleLoader__.load({
               commit((state) => ({ ...state, error: { message: blocked }, notice: null }));
               return;
             }
-            void perform(action, { action, expectedRevision: snap.revision, ...extra }, reset);
+            // F-61: the pool has its own version counter.
+            const poolAction = action.startsWith('pool.');
+            void perform(action, {
+              action,
+              expectedRevision: snap.revision,
+              ...(poolAction ? { expectedPoolRevision: snap.management?.poolRevision ?? snap.revision } : {}),
+              ...extra,
+            }, reset);
           };
 
           const cancel = () => {
@@ -693,7 +814,7 @@ window.__ModuleLoader__.load({
             const snap = uiRef.current.snap;
             const strategy = id ? snap.management.strategies.find((row) => row.id === id) : null;
             if (id && !strategy) return;
-            commit((state) => ({ ...state, detail: { kind: 'strategy', id: strategy?.id || null }, strategyDraft: strategyDraftOf(strategy), error: null, notice: null, noticeKind: '' }));
+            commit((state) => ({ ...state, detail: { kind: 'strategy', id: strategy?.id || null }, strategyDraft: strategyDraftOf(strategy, snap), error: null, notice: null, noticeKind: '' }));
           }
           function closeDetail() {
             commit((state) => ({ ...state, detail: null, strategyDraft: null, modelDraft: null, error: null, notice: null, noticeKind: '' }));
@@ -723,7 +844,18 @@ window.__ModuleLoader__.load({
                 if (fixedRoute) models.add(fixedRoute);
               }
               if (type === 'auto') fixedRoute = '';
-              return { ...state, strategyDraft: { ...draft, type, models, fixedRoute, dirty: true, converting: false } };
+              // F-54: the fallback route belongs to auto drafts only.
+              const routingDefault = type === 'auto' ? (draft.routingDefault || '') : '';
+              // F-56: on a new draft the name follows the type switch only while
+              // it still equals the last auto-filled default (user has not
+              // renamed); an edited or existing strategy keeps its name.
+              let { name } = draft;
+              let lastAutoName = draft.lastAutoName || '';
+              if (!draft.id && lastAutoName && draft.name.trim() === lastAutoName) {
+                name = defaultStrategyName(type, state.snap);
+                lastAutoName = name;
+              }
+              return { ...state, strategyDraft: { ...draft, type, models, fixedRoute, routingDefault, name, lastAutoName, dirty: true, converting: false } };
             });
           }
           function validateStrategyDraft() {
@@ -737,6 +869,7 @@ window.__ModuleLoader__.load({
             else if (snap.management.strategies.some((row) => row.id !== draft.id && row.name === name)) errors.name = t('errNameDup');
             if (draft.type === 'fixed') { if (!draft.fixedRoute || draft.models.size !== 1 || !draft.models.has(draft.fixedRoute)) errors.fixed = t('errFixed'); }
             else if (!draft.models.size) errors.models = t('errModels');
+            if (draft.type === 'auto' && draft.routingDefault && !draft.models.has(draft.routingDefault)) errors.routing = t('errRouting');
             if (draft.strategyText.length > 2000) errors.text = t('errText');
             return errors;
           }
@@ -746,7 +879,11 @@ window.__ModuleLoader__.load({
             const models = draft.type === 'fixed'
               ? (draft.fixedRoute ? [{ provider: fixed[0], model: fixed[1] }] : [])
               : [...draft.models].map((key) => JSON.parse(key)).map(([provider, model]) => ({ provider, model }));
-            return { id: draft.id || undefined, name: draft.name.trim(), type: draft.type, models, fixedProvider: fixed[0], fixedModel: fixed[1], strategyText: draft.strategyText };
+            // F-54: the fallback route travels only when it is still a candidate.
+            const fallback = draft.type === 'auto' && draft.routingDefault && draft.models.has(draft.routingDefault)
+              ? (([provider, model]) => ({ provider, model }))(JSON.parse(draft.routingDefault))
+              : null;
+            return { id: draft.id || undefined, name: draft.name.trim(), type: draft.type, models, fixedProvider: fixed[0], fixedModel: fixed[1], strategyText: draft.strategyText, ...(fallback ? { routingDefault: fallback } : {}) };
           }
           function saveStrategy() {
             const errors = validateStrategyDraft();
@@ -782,17 +919,24 @@ window.__ModuleLoader__.load({
           }
           function openModel(key) {
             const snap = uiRef.current.snap;
+            // F-63: a candidate that is not in the pool can still carry a card.
             const entry = snap.management.pool.find((row) => keyOf(row) === key);
-            if (!entry) return;
             const candidate = snap.candidates.find((row) => keyOf(row) === key);
-            const name = entry.name || candidate?.name || entry.model;
-            commit((state) => ({ ...state, detail: { kind: 'model', key }, modelDraft: { provider: entry.provider, model: entry.model, name, purpose: entry.purpose || '', note: entry.note || '', dirty: false }, error: null, notice: null, noticeKind: '' }));
+            if (!entry && !candidate) return;
+            const name = entry?.name || candidate?.name || candidate?.model;
+            commit((state) => ({ ...state, detail: { kind: 'model', key }, modelDraft: { provider: candidate?.provider ?? entry?.provider, model: candidate?.model ?? entry?.model, name, purpose: (candidate?.savedCard ?? entry)?.purpose || '', note: (candidate?.savedCard ?? entry)?.note || '', source: (candidate?.savedCard ?? entry)?.source || '', dirty: false }, error: null, notice: null, noticeKind: '' }));
           }
           function saveModelNote() {
             const draft = uiRef.current.modelDraft;
             if (!draft) return;
             if (!draft.dirty) { commit((state) => ({ ...state, notice: t('noChanges') })); return; }
             mutation('pool.note', { provider: draft.provider, model: draft.model, purpose: draft.purpose, note: draft.note }, { model: true, notice: 'noteSaved' });
+          }
+          // F-62: restore the capability card from the preset the Host matched.
+          function restoreModelPreset() {
+            const draft = uiRef.current.modelDraft;
+            if (!draft) return;
+            mutation('pool.preset', { provider: draft.provider, model: draft.model }, { model: true, notice: 'presetRestored' });
           }
           function togglePool(route) {
             commit((state) => {
@@ -830,6 +974,36 @@ window.__ModuleLoader__.load({
           function clearAllPool() {
             commit((state) => state.poolDraft ? { ...state, poolDraft: { keys: new Set(), entries: new Map(state.poolDraft.entries) } } : state);
           }
+          // F-57: provider-scoped select/clear for the grouped pool view. Same
+          // rules as the global actions: unavailable candidates are not added
+          // (kept stale ones only ever lose their check), the 24-cap holds, and
+          // only this provider's rows change.
+          function selectProviderPool(provider) {
+            commit((state) => {
+              if (!state.poolDraft) return state;
+              const keys = new Set(state.poolDraft.keys);
+              const entries = new Map(state.poolDraft.entries);
+              for (const candidate of state.snap.candidates) {
+                if (candidate.provider !== provider) continue;
+                if (!candidate.authorized || !candidate.available) continue;
+                if (keys.size >= 24) break;
+                const key = keyOf(candidate);
+                keys.add(key);
+                if (!entries.has(key)) entries.set(key, { provider: candidate.provider, model: candidate.model, purpose: (candidate.description || '').slice(0, 500), note: '' });
+              }
+              return { ...state, poolDraft: { keys, entries } };
+            });
+          }
+          function clearProviderPool(provider) {
+            commit((state) => {
+              if (!state.poolDraft) return state;
+              const keys = new Set(state.poolDraft.keys);
+              for (const candidate of state.snap.candidates) {
+                if (candidate.provider === provider) keys.delete(keyOf(candidate));
+              }
+              return { ...state, poolDraft: { keys, entries: new Map(state.poolDraft.entries) } };
+            });
+          }
           function savePool() {
             const snap = uiRef.current.snap; const pool = uiRef.current.poolDraft;
             if (!snap || !pool) return;
@@ -840,19 +1014,11 @@ window.__ModuleLoader__.load({
               commit((state) => ({ ...state, error: null, notice: t('poolNoChanges'), noticeKind: '' }));
               return;
             }
-            const active = snap.management.active || null;
-            const activeRoutes = new Set((active?.snapshot?.models || []).map(keyOf));
-            const activeStrategy = active ? snap.management.strategies.find((row) => row.id === active.strategyId) : null;
-            for (const route of activeStrategy?.models || []) activeRoutes.add(keyOf(route));
-            const protectedRemovals = removals.filter((key) => activeRoutes.has(key));
-            if (protectedRemovals.length) {
-              const names = protectedRemovals.map((key) => {
-                const entry = snap.management.pool.find((row) => keyOf(row) === key);
-                return entry?.name || JSON.parse(key)[1];
-              }).join('、');
-              commit((state) => ({ ...state, error: { message: fmt(t('poolBlockedActive'), { name: active?.snapshot?.name || activeStrategy?.name || '', models: names }) }, notice: null }));
-              return;
-            }
+            // F-59: a pool save is never blocked because an enabled strategy
+            // references a removed entry. The Host recomputes the effective
+            // content in the same write (narrowed to the remaining references,
+            // or disabled when the last reference / fixed target is gone); the
+            // panel reports the outcome in the save notice and on the cards.
             const order = [...snap.candidates.map(keyOf), ...[...pool.keys].filter((key) => !snap.candidates.some((row) => keyOf(row) === key))];
             const entries = order.filter((key) => pool.keys.has(key)).map((key) => pool.entries.get(key) || (() => { const [provider, model] = JSON.parse(key); return { provider, model, purpose: '', note: '' }; })());
             mutation('pool.save', { pool: entries }, { pool: true, notice: 'poolSaved' });
@@ -916,6 +1082,14 @@ window.__ModuleLoader__.load({
             const blocked = capacityBlockMessage('strategy.enable');
             if (blocked) { warn(blocked); return; }
             mutation('strategy.enable', { id: target.id }, { notice: null });
+          }
+          // F-58: turn the project scope on or off. The Host copies this
+          // session's library into the shared project record when it is turned
+          // on, and keeps that record when it is turned off again.
+          function toggleScope(checked) {
+            const current = uiRef.current;
+            if (!current.snap || !current.snap.canEdit || current.conflict || current.mustRefresh) return;
+            mutation('scope.save', { scope: checked ? 'project' : 'session' }, { notice: null });
           }
           function clearDefault() {
             const current = uiRef.current;
@@ -982,6 +1156,9 @@ window.__ModuleLoader__.load({
             return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
           };
           const typeLabel = (type) => type === 'fixed' ? t('typeFixed') : type === 'auto' ? t('typeAuto') : t('legacyBadge');
+          // F-58: the scope state travels with the snapshot. A missing scope
+          // object means an older Host: the panel then keeps the session scope.
+          const scope = (snap && snap.scope) || { available: false, applied: false, project: null, reason: '' };
           const strategyById = (id) => snap?.management.strategies.find((row) => row.id === id) || null;
           const active = snap?.management.active || null;
           const activeStrategy = active ? strategyById(active.strategyId) : null;
@@ -992,6 +1169,13 @@ window.__ModuleLoader__.load({
           function modelName(route) {
             const found = snap?.management.pool.find((row) => sameRoute(row, route)) || snap?.candidates.find((row) => sameRoute(row, route));
             return found?.name || route?.model || '';
+          }
+          // F-59: the effective content of the enabled strategy. The Host
+          // narrows it to the references that are still in the pool; the saved
+          // strategy keeps its own references and is never rewritten.
+          function effectiveNames(snapshot) {
+            const info = new Map((snapshot?.modelsInfo || []).map((row) => [keyOf(row), row.name || row.model]));
+            return (snapshot?.models || []).map((route) => info.get(keyOf(route)) || route?.model || '');
           }
 
           const switchControl = (suffix, checked, disabled, aria, onChange) => h('label', { className: 'lezsp-switch' },
@@ -1021,6 +1205,15 @@ window.__ModuleLoader__.load({
               return !candidate?.authorized || !candidate?.available;
             });
             const pending = Boolean(strategy.pendingRecovery) && pendingRoutes.length > 0;
+            // F-59: references that left the saved pool. The Host marks the same
+            // condition as `needsAdjust`; the panel recomputes it because the
+            // hints name the removed models.
+            const staleRoutes = staleRefsOf(strategy, snap.management.pool);
+            const staleNames = [...new Set(staleRoutes.map((route) => modelName(route)))].join(t('listSeparator'));
+            // F-59: the Host disables a strategy whose references left the pool
+            // and marks it with `poolRemovalStop`. The marker only counts while
+            // the references are still outside the pool.
+            const stopped = Boolean(strategy.poolRemovalStop) && staleRoutes.length > 0;
             const byProvider = new Map();
             for (const route of strategy.models || []) {
               const name = modelName(route);
@@ -1030,17 +1223,34 @@ window.__ModuleLoader__.load({
             const modelLines = byProvider.size
               ? [...byProvider].map(([provider, names]) => `${provider}: ${names.join('、')}`)
               : [t('noModelsSelected')];
-            const stateText = adjust ? t('adjustBadge') : pending ? t('pendingBadge') : isActive ? t('activeBadge') : t('stateOff');
-            const stateClass = `lezsp-state${adjust || pending ? ' warn' : isActive ? ' on' : ''}`;
+            // F-59: the effective content of the enabled strategy, straight from
+            // the Host snapshot. A narrowed snapshot holds fewer models than the
+            // saved references; the saved references stay untouched. A legacy
+            // follow strategy has no model content and shows no such row.
+            const hasEffectiveContent = Boolean(isActive) && ['fixed', 'auto'].includes(active.snapshot.type);
+            const effective = hasEffectiveContent ? effectiveNames(active.snapshot) : [];
+            const effectiveKeys = new Set((active?.snapshot?.models || []).map(keyOf));
+            const narrowed = Boolean(hasEffectiveContent && !stopped && (strategy.models || []).some((route) => !effectiveKeys.has(keyOf(route))));
+            const stateText = stopped ? t('stoppedBadge') : adjust ? t('adjustBadge') : pending ? t('pendingBadge') : isActive ? t('activeBadge') : t('stateOff');
+            const stateClass = `lezsp-state${stopped || adjust || pending ? ' warn' : isActive ? ' on' : ''}`;
+            const stopReason = strategy.type === 'fixed' ? t('poolRemovalStopFixed') : t('poolRemovalStopAuto');
             return h('article', { key: strategy.id, className: `lezsp-card${isActive ? ' active' : ''}`, 'aria-labelledby': idFor(`strategy-${strategy.id}`), tabIndex: -1 },
               h('p', { className: 'lezsp-card-head' },
                 h('strong', { className: 'lezsp-card-name', id: idFor(`strategy-${strategy.id}`) }, strategy.name),
                 ' · ', h('span', { className: 'lezsp-muted' }, typeLabel(strategy.type)), ' · ',
                 h('span', { className: stateClass }, stateText),
+                // F-58: the shared project record is what this card belongs to.
+                (snap.effective ? isActive && snap.management.editTarget==='project' && snap.effective.source==='project' : scope.applied) ? h(React.Fragment, null, ' · ', h('span', { className: 'lezsp-state' }, t('projectScopeBadge'))) : null,
                 isDefault ? h(React.Fragment, null, ' · ', h('span', { className: defaultStale ? 'lezsp-state warn' : 'lezsp-muted' }, defaultStale ? t('defaultStaleBadge') : t('defaultBadge'))) : null),
               h('p', { className: 'lezsp-card-models' }, modelLines.map((line) => h('span', { key: line, className: 'lezsp-card-model-line' }, line))),
-              adjust ? h('p', { className: 'lezsp-error' }, t('needsAdjustHint'))
-                : pending ? h('p', { className: 'lezsp-warn' }, fmt(t('pendingRecoveryHint'), { models: [...new Set(pendingRoutes.map((route) => modelName(route)))].join('、') })) : null,
+              stopped ? h('p', { className: 'lezsp-warn' }, fmt(t('poolRemovalStopHint'), { reason: stopReason, models: staleNames }))
+                : adjust ? h('p', { className: 'lezsp-warn' }, fmt(t('poolRemovedHint'), { models: staleNames }))
+                  : pending ? h('p', { className: 'lezsp-warn' }, fmt(t('pendingRecoveryHint'), { models: [...new Set(pendingRoutes.map((route) => modelName(route)))].join('、') })) : null,
+              narrowed ? h('p', { className: 'lezsp-warn' }, fmt(t('poolNarrowedHint'), { models: effective.join(t('listSeparator')) })) : null,
+              hasEffectiveContent ? h('p', { className: 'lezsp-muted' }, fmt(active.snapshot.type === 'fixed' ? t('effectiveContentFixed') : t('effectiveContent'), { models: effective.join(t('listSeparator')), count: effective.length })) : null,
+              // F-54: the routing rules and the fallback route of an auto strategy.
+              strategy.type === 'auto' ? h('p', { className: 'lezsp-muted' }, fmt(t('routingRulesLine'), { value: strategy.strategyText || t('rulesEmpty') })) : null,
+              strategy.type === 'auto' ? h('p', { className: 'lezsp-muted' }, fmt(t('routingDefaultLine'), { value: strategy.routingDefault ? modelName(strategy.routingDefault) : t('defaultUnset') })) : null,
               strategy.type === 'inherit' ? h('p', { className: 'lezsp-muted' }, t('legacyHint')) : null,
               h('div', { className: 'lezsp-actions' },
                 button(t('edit'), () => openStrategy(strategy.id), { disabled: busy, aria: fmt(t('editLabel'), { name: strategy.name }) }),
@@ -1093,6 +1303,29 @@ window.__ModuleLoader__.load({
                 : fmt(t('defaultSkippedCovered'), { count: skipped.length }))
               : '';
             return h(React.Fragment, null,
+              snap.effective ? h('section',{className:'lezsp-status'},
+                h('h2',null,t('effectiveTitle')), h('p',null,(snap.effective.source==='session'?t('sessionTarget'):snap.effective.source==='project'?t('projectTarget'):t('hostTarget'))+(snap.effective.strategyName?' · '+snap.effective.strategyName:'')),
+                h('label',null,t('editTitle'),' ',h('select',{id:idFor('editTarget'),value:snap.management.editTarget||'session',disabled:!!ui.busy||ui.mustRefresh||ui.conflict,onChange:e=>{
+                  const target=e.target.value;
+                  if(dirtyOf(uiRef.current)&&!window.confirm(t('discard')))return;
+                  void perform('read',{action:'read',editTarget:target},{retarget:true});
+                }},h('option',{value:'session'},t('sessionTarget')),h('option',{value:'project',disabled:!scope.available},t('projectTarget')+(scope.project?' · '+scope.project.title:''))))) : null,
+              // F-58: the enable scope comes before the strategy switch: the
+              // scope decides where the strategy applies, so it reads first.
+              h('section', { className: 'lezsp-status', 'aria-labelledby': idFor('scopeTitle') },
+                h('div', { className: 'lezsp-between lezsp-row' },
+                  h('h2', { id: idFor('scopeTitle'), tabIndex: -1 }, t('scopeTitle')),
+                  switchControl('scopeToggle', Boolean(scope.applied), !editable || !scope.available, scope.applied ? t('scopeLabelOn') : t('scopeLabelOff'), toggleScope)),
+                h('p', null, scope.applied
+                  ? fmt(t('scopeProjectOn'), { path: scope.project ? scope.project.path : '' })
+                  : scope.available
+                    ? fmt(t('scopeSession'), { title: scope.project ? scope.project.title : '' })
+                    : t('scopeUnavailable')),
+                scope.applied ? h('p', { className: 'lezsp-muted' }, t('scopeProjectHint')) : null,
+                // F-58 (2026-11-24): with the project applied, the new-session
+                // default yields inside this project — say so once, where the
+                // default toggle lives.
+                scope.applied ? h('p', { className: 'lezsp-muted' }, t('scopeDefaultSkipped')) : null),
               h('section', { className: 'lezsp-status', 'aria-labelledby': idFor('sessionTitle') },
                 h('div', { className: 'lezsp-between lezsp-row' },
                   h('h2', { id: idFor('sessionTitle'), tabIndex: -1, ref: titleRef('strategies') }, t('sessionTitle')),
@@ -1118,8 +1351,20 @@ window.__ModuleLoader__.load({
                 h('h2', { id: idFor('strategiesTitle'), tabIndex: -1 }, t('strategies'), ' ', h('span', { className: 'lezsp-count' }, fmt(t('countSuffix'), { count: snap.management.strategies.length }))),
                 button(t('newStrategy'), () => openStrategy(null), { className: 'lezsp-small lezsp-primary', disabled: !editable })),
               snap.management.strategies.length
-                ? h('div', { className: 'lezsp-stack' }, snap.management.strategies.map(strategyCard))
+                ? h('div', { className: 'lezsp-stack' }, orderedStrategiesForDisplay().map(strategyCard))
                 : h('div', { className: 'lezsp-empty' }, t('emptyStrategies')));
+          }
+
+          // F-55: the enabled strategy pins to the top of the list for display only.
+          // The saved order in management.strategies is untouched; when nothing is
+          // enabled (or the enabled strategy is not in the list, e.g. legacy), the
+          // saved order renders as-is.
+          function orderedStrategiesForDisplay() {
+            const activeId = active?.strategyId;
+            if (!activeId) return snap.management.strategies;
+            const top = snap.management.strategies.filter((strategy) => strategy.id === activeId);
+            if (!top.length) return snap.management.strategies;
+            return [...top, ...snap.management.strategies.filter((strategy) => strategy.id !== activeId)];
           }
 
           function strategyDetail() {
@@ -1152,7 +1397,10 @@ window.__ModuleLoader__.load({
                 commit((state) => {
                   const current = new Set(state.strategyDraft.models);
                   if (checked) current.add(key); else current.delete(key);
-                  return { ...state, strategyDraft: { ...state.strategyDraft, models: current, dirty: true } };
+                  // F-54: unchecking the fallback route clears it; the panel never
+                  // picks another model on the user's behalf.
+                  const routingDefault = current.has(state.strategyDraft.routingDefault) ? state.strategyDraft.routingDefault : '';
+                  return { ...state, strategyDraft: { ...state.strategyDraft, models: current, routingDefault, dirty: true } };
                 });
               }
             };
@@ -1182,12 +1430,18 @@ window.__ModuleLoader__.load({
             const typeChoices = h('div', { className: 'lezsp-seg', role: 'group', 'aria-label': t('typeLabel') },
               h('button', { type: 'button', 'aria-pressed': draft.type === 'fixed', disabled: !editable, onClick: () => switchType('fixed') }, t('typeFixed')),
               h('button', { type: 'button', 'aria-pressed': draft.type === 'auto', disabled: !editable, onClick: () => switchType('auto') }, t('typeAuto')));
+            // F-59: the Host disabled this strategy because its references left
+            // the pool. The editor shows the same stopped state as the card; the
+            // save gate stays unchanged (the Host still refuses to save a
+            // strategy that still carries an outside-pool reference).
+            const stopped = Boolean(saved?.poolRemovalStop) && staleRefsOf(saved, pool).length > 0;
+            const stopReason = saved ? (saved.type === 'fixed' ? t('poolRemovalStopFixed') : t('poolRemovalStopAuto')) : '';
             return h('section', { 'aria-label': t('editStrategyTitle') },
               h('div', { className: 'lezsp-between lezsp-row' },
                 button(t('back'), () => { if (discardIfDirty()) closeDetail(); }, { className: 'lezsp-link' }),
-                badge(saved ? (isActive ? t('activeBadge') : t('savedBadge')) : t('unsavedBadge'), isActive ? 'on' : '')),
+                badge(stopped ? t('stoppedBadge') : saved ? (isActive ? t('activeBadge') : t('savedBadge')) : t('unsavedBadge'), isActive ? 'on' : '')),
               h('h2', { className: 'lezsp-detail-title', tabIndex: -1, id: idFor('strategyDetailTitle'), ref: titleRef('strategyDetail') }, saved ? t('editStrategyTitle') : t('newStrategyTitle')),
-              h('p', { className: 'lezsp-muted' }, isActive ? t('detailSubActive') : saved ? t('detailSubSaved') : t('detailSubNew')),
+              h('p', { className: 'lezsp-muted' }, stopped ? fmt(t('detailSubStopped'), { reason: stopReason }) : isActive ? t('detailSubActive') : saved ? t('detailSubSaved') : t('detailSubNew')),
               !capacity.known ? hostCapacityNotice() : saveBlocked ? h('p', { className: 'lezsp-note warn', role: 'status' }, saveBlocked) : null,
               draft.converting ? h('p', { className: 'lezsp-note warn' }, t('convertedHint')) : null,
               h('form', { onSubmit: (event) => { event.preventDefault(); saveStrategy(); } },
@@ -1208,6 +1462,22 @@ window.__ModuleLoader__.load({
                   h('textarea', { id: idFor('sText'), rows: 4, maxLength: 2000, value: draft.strategyText, disabled: !editable, 'aria-invalid': errors.text ? 'true' : undefined, onChange: (event) => editStrategyField('strategyText', event.target.value) }),
                   h('small', { className: 'lezsp-muted' }, fmt(t('textCount'), { count: draft.strategyText.length, max: 2000 }) + ' · ' + t('textHint')),
                   errors.text ? h('small', { className: 'lezsp-error' }, errors.text) : null) : null,
+                // F-54: the fallback route. Only the checked candidates are
+                // offered, and an empty choice means "no fallback".
+                draft.type === 'auto' ? h('label', { className: 'lezsp-field', htmlFor: idFor('sRoutingDefault') },
+                  h('span', null, t('routingLabel')),
+                  h('select', {
+                    id: idFor('sRoutingDefault'), disabled: !editable || !draft.models.size,
+                    'aria-invalid': errors.routing ? 'true' : undefined,
+                    onChange: (event) => editStrategyField('routingDefault', event.target.value),
+                  },
+                    h('option', { value: '', selected: !draft.routingDefault }, draft.models.size ? t('routingNone') : t('routingEmpty')),
+                    [...draft.models].map((key) => {
+                      const info = choiceLabel(key);
+                      return h('option', { value: key, selected: draft.routingDefault === key }, info.name + ' - ' + info.provider);
+                    })),
+                  h('small', { className: 'lezsp-muted' }, t('routingHint')),
+                  errors.routing ? h('small', { className: 'lezsp-error' }, errors.routing) : null) : null,
                 ui.error?.fields ? h('div', { className: 'lezsp-banner err', role: 'alert' }, t('formError')) : null,
                 h('div', { className: 'lezsp-form-actions' },
                   h('button', { type: 'submit', className: 'lezsp-primary', disabled: !editable }, t('saveStrategy')),
@@ -1269,27 +1539,55 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'lezsp-count' }, fmt(t('savedCount'), { count: savedKeys.size }))),
               h('p', { className: 'lezsp-muted' }, impact.length ? impact.join(' ') : t('poolImpact')),
               dirty ? banner(t('poolDirty'), 'warn') : null,
-              // F-50: display-only partition. Available candidates keep their
-              // order on top; unsupported ones sink to the bottom with their
-              // checked state kept and return to their position after recovery.
-              h('div', { className: 'lezsp-stack' }, snap.candidates.length ? [
-                ...snap.candidates.filter((row) => row.authorized && row.available),
-                ...staleCandidates,
-              ].map((candidate) => {
-                const key = keyOf(candidate);
-                const checked = keys.has(key);
-                const entry = pool.entries.get(key) || byKey.get(key);
-                const stale = !candidate.authorized || !candidate.available;
-                const keptStale = stale && savedKeys.has(key);
-                return h('div', { key, className: `lezsp-pool-row${stale ? ' stale' : ''}` },
-                  h('input', { type: 'checkbox', checked, disabled: !editable || (!checked && stale), 'aria-label': fmt(stale ? t('poolToggleLabelStale') : t('poolToggleLabel'), { name: candidate.name || candidate.model }), onChange: (event) => { event.stopPropagation(); togglePool(candidate); } }),
-                  h('label', { className: 'lezsp-choice-body' },
-                    h('span', { className: 'lezsp-choice-name' }, candidate.name || candidate.model, ' ', h('span', { className: 'lezsp-muted' }, candidate.provider)),
-                    h('span', { className: 'lezsp-muted' }, entry?.purpose || candidate.description || t('noPurpose')),
-                    h('span', { className: 'lezsp-muted' }, reasoningText(candidate, entry)),
-                    stale ? h('span', { className: keptStale ? 'lezsp-warn' : 'lezsp-error' }, keptStale ? t('unavailableKeptHint') : t('unavailableHint')) : null),
-                  button(t('abilityCard'), () => openModel(key), { className: 'lezsp-small', disabled: busy || !byKey.has(key), aria: fmt(t('abilityCardLabel'), { name: candidate.name || candidate.model, provider: candidate.provider }) }));
-              }) : h('div', { className: 'lezsp-empty' }, t('emptyModels'))),
+              // F-50 display partition (available first, stale sink with order
+              // kept) composed with the F-57 provider grouping: group order is
+              // first appearance within that partition, rows keep their order
+              // inside each group, and the draft/save semantics do not change.
+              (() => {
+                const orderedCandidates = [
+                  ...snap.candidates.filter((row) => row.authorized && row.available),
+                  ...staleCandidates,
+                ];
+                const groups = new Map();
+                for (const candidate of orderedCandidates) {
+                  if (!groups.has(candidate.provider)) groups.set(candidate.provider, []);
+                  groups.get(candidate.provider).push(candidate);
+                }
+                const poolRow = (candidate) => {
+                  const key = keyOf(candidate);
+                  const checked = keys.has(key);
+                  const entry = pool.entries.get(key) || byKey.get(key);
+                  const stale = !candidate.authorized || !candidate.available;
+                  const keptStale = stale && savedKeys.has(key);
+                  // F-52 (2026-11-24 increment): a blank or out-of-pool row still
+                  // shows the preset as its effective card. The Host puts that
+                  // content in `savedCard`; the row falls back to it after the
+                  // saved/draft entry, so the editor and the list agree.
+                  const cardSource = byKey.get(key)?.source || candidate.savedCard?.source;
+                  const cardText = entry?.note || entry?.purpose || candidate.savedCard?.note || candidate.savedCard?.purpose || candidate.description || t('noPurpose');
+                  return h('div', { key, className: `lezsp-pool-row${stale ? ' stale' : ''}` },
+                    h('input', { type: 'checkbox', checked, disabled: !editable || (!checked && stale), 'aria-label': fmt(stale ? t('poolToggleLabelStale') : t('poolToggleLabel'), { name: candidate.name || candidate.model }), onChange: (event) => { event.stopPropagation(); togglePool(candidate); } }),
+                    h('label', { className: 'lezsp-choice-body' },
+                      h('span', { className: 'lezsp-choice-name' }, candidate.name || candidate.model, ' ', h('span', { className: 'lezsp-muted' }, candidate.provider),
+                        // F-52: the pool row says where the card text came from.
+                        // The marker is server state, so it is read from the saved
+                        // pool rather than from the local draft.
+                        cardSource === 'preset' ? h('span', { className: 'lezsp-state' }, t('presetBadge')) : null),
+                      h('span', { className: 'lezsp-muted' }, (() => { const card = cardText; return card.length > 120 ? `${card.slice(0, 120)}…` : card; })()),
+                      h('span', { className: 'lezsp-muted' }, reasoningText(candidate, entry)),
+                      stale ? h('span', { className: keptStale ? 'lezsp-warn' : 'lezsp-error' }, keptStale ? t('unavailableKeptHint') : t('unavailableHint')) : null),
+                    button(t('abilityCard'), () => openModel(key), { className: 'lezsp-small', disabled: busy, aria: fmt(t('abilityCardLabel'), { name: candidate.name || candidate.model, provider: candidate.provider }) }));
+                };
+                return h('div', { className: 'lezsp-stack' }, snap.candidates.length
+                  ? [...groups].map(([provider, rows]) => h('section', { key: provider, className: 'lezsp-pool-group', 'aria-label': provider },
+                    h('div', { className: 'lezsp-pool-group-head' },
+                      h('span', { className: 'lezsp-pool-group-name' }, provider),
+                      h('span', { className: 'lezsp-muted' }, fmt(t('poolGroupCount'), { count: rows.length, selected: rows.filter((row) => keys.has(keyOf(row))).length })),
+                      button(t('poolGroupSelect'), () => selectProviderPool(provider), { className: 'lezsp-small', disabled: !editable, aria: fmt(t('poolGroupSelectLabel'), { provider }) }),
+                      button(t('poolGroupClear'), () => clearProviderPool(provider), { className: 'lezsp-small', disabled: !editable, aria: fmt(t('poolGroupClearLabel'), { provider }) })),
+                    rows.map(poolRow)))
+                  : h('div', { className: 'lezsp-empty' }, t('emptyModels')));
+              })(),
               h('div', { className: 'lezsp-form-actions' },
                 button(t('savePool'), savePool, { className: 'lezsp-primary', disabled: !editable || !dirty }),
                 button(t('discardPool'), () => commit((state) => ({ ...state, poolDraft: draftsFrom(snap).poolDraft, error: null })), { disabled: busy || !dirty })),
@@ -1330,27 +1628,35 @@ window.__ModuleLoader__.load({
 
           function modelDetail() {
             const draft = ui.modelDraft;
+            // F-62: the preset the Host matched for this model, if any.
+            const presetCard = snap.candidates.find((row) => row.provider === draft.provider && row.model === draft.model)?.preset || null;
             return h('section', { 'aria-label': t('abilityTitle') },
               button(t('backModels'), () => { if (discardIfDirty()) closeDetail(); }, { className: 'lezsp-link' }),
               h('h2', { className: 'lezsp-detail-title', tabIndex: -1, id: idFor('modelDetailTitle'), ref: titleRef('modelDetail') },
                 t('abilityTitle'), h('span', { className: 'lezsp-detail-meta' }, `${draft.name || draft.model} · ${draft.provider}`)),
-              h('label', { className: 'lezsp-field', htmlFor: idFor('mPurpose') },
-                h('span', null, t('purposeLabel')),
-                h('input', { id: idFor('mPurpose'), type: 'text', maxLength: 200, value: draft.purpose, disabled: !editable, onChange: (event) => commit((state) => ({ ...state, modelDraft: { ...state.modelDraft, purpose: event.target.value, dirty: true } })) })),
-              h('label', { className: 'lezsp-field', htmlFor: idFor('mNote') },
-                h('span', null, t('noteLabel')),
-                h('textarea', { id: idFor('mNote'), rows: 4, maxLength: 500, value: draft.note, disabled: !editable, onChange: (event) => commit((state) => ({ ...state, modelDraft: { ...state.modelDraft, note: event.target.value, dirty: true } })) })),
+              h('textarea', { id: idFor('mNote'), 'aria-label': t('abilityTitle'), rows: 4, maxLength: 500, value: draft.note, disabled: !editable, onChange: (event) => commit((state) => ({ ...state, modelDraft: { ...state.modelDraft, note: event.target.value, dirty: true } })) }),
               h('p', { className: 'lezsp-muted' }, t('noteHintUseCase')),
+              // F-52: say where the current text came from, and that editing
+              // keeps the user's own words.
+              h('p', { className: 'lezsp-muted' }, draft.source === 'preset' ? t('presetSourceHint') : draft.source === 'user' ? t('userSourceBadge') : t('presetSourceEmpty')),
+              // F-62: the default capability data the Host matched for this
+              // model, shown read-only; the restore button puts it back.
+              presetCard ? h('div', { className: 'lezsp-note' },
+                h('p', { className: 'lezsp-muted' }, t('presetDefaultLabel')),
+                h('p', null, presetCard.scenarios),
+                presetCard.limitations ? h('p', { className: 'lezsp-muted' }, presetCard.limitations) : null) : null,
               h('p', { className: 'lezsp-muted' }, t('noteHintEffect')),
               h('div', { className: 'lezsp-form-actions' },
                 button(t('saveNote'), saveModelNote, { className: 'lezsp-primary', disabled: !editable || !draft.dirty }),
+                button(t('restorePreset'), restoreModelPreset, { disabled: !editable || !presetCard, title: presetCard ? undefined : t('presetMissing') }),
                 button(t('discardNote'), () => commit((state) => {
                   const current = state.modelDraft;
                   if (!current) return state;
                   const entry = snap.management.pool.find((row) => sameRoute(row, current));
+                   const card = snap.candidates.find((row) => sameRoute(row, current))?.savedCard ?? entry;
                   return {
                     ...state,
-                    modelDraft: { ...current, name: entry?.name || current.name, purpose: entry ? entry.purpose || '' : current.purpose, note: entry ? entry.note || '' : current.note, dirty: false },
+                    modelDraft: { ...current, name: entry?.name || current.name, purpose: card?.purpose || '', note: card?.note || '', source: card?.source || '', dirty: false },
                     error: null,
                   };
                 }), { disabled: busy || !draft.dirty })));
@@ -1378,6 +1684,10 @@ window.__ModuleLoader__.load({
                     h('div', { className: 'lezsp-record-body' },
                       h('dl', null,
                         h('dt', null, t('requested')), h('dd', { className: 'lezsp-route' }, routeLabel({ provider: record.requestedProvider, model: record.requestedModel }) || t('noRequest')),
+                        // F-54: how the route was chosen (plugin judgement or the
+                        // configured fallback). Absent for native entries.
+                        record.routingSource ? h('dt', null, t('sourceLabel')) : null,
+                        record.routingSource ? h('dd', null, record.routingSource === 'default' ? t('sourceDefault') : t('sourceLlm')) : null,
                         h('dt', null, t('actual')), h('dd', { className: 'lezsp-route' }, actual),
                         h('dt', null, t('evidence')), h('dd', null, evidence),
                         h('dt', null, t('status')), h('dd', null, status),

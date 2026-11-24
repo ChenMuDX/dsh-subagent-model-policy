@@ -20,7 +20,7 @@ export function defaults(maxDepth = 1, models = []) {
 }
 export function validatePolicy(raw, ceiling, authorized) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) fail('策略必须是对象');
-  const allowedKeys = ['enabled','mode','preset','strategyText','maxDepth','maxActive','limitsUnset','fixedProvider','fixedModel','models'];
+  const allowedKeys = ['enabled','mode','preset','strategyText','maxDepth','maxActive','limitsUnset','fixedProvider','fixedModel','models','routingDefault'];
   if (Object.keys(raw).some(k => !allowedKeys.includes(k))) fail('存在未知策略字段');
   if (typeof raw.enabled !== 'boolean') fail('enabled 必须为布尔值');
   if (raw.limitsUnset !== undefined && typeof raw.limitsUnset !== 'boolean') fail('limitsUnset 必须为布尔值');
@@ -51,9 +51,20 @@ export function validatePolicy(raw, ceiling, authorized) {
     maxActive: integer(raw.maxActive, 1, 32, '并发子智能体数量'), limitsUnset: raw.limitsUnset === true,
     fixedProvider: text(raw.fixedProvider, 200, '固定提供方'), fixedModel: text(raw.fixedModel, 200, '固定模型'), models,
   };
+  if (raw.routingDefault != null) {
+    const route=exactCandidate(raw.routingDefault, models);
+    if (policy.mode !== 'auto' || !route) fail('默认模型必须是自选策略中的精确候选路由');
+    policy.routingDefault=route;
+  }
   if (policy.enabled && policy.mode !== 'inherit' && models.length === 0) fail('固定或自选模式至少需要一个授权模型');
   if (policy.enabled && policy.mode === 'fixed' && !models.some(r => sameRoute(r, {provider: policy.fixedProvider, model: policy.fixedModel}))) fail('固定模型必须在本会话选择的模型中');
   return policy;
+}
+// Validate both model output and configured fallbacks without accepting other controls.
+export function exactCandidate(value, candidates) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length !== 2 ||
+      typeof value.provider !== 'string' || !value.provider || typeof value.model !== 'string' || !value.model) return null;
+  return candidates.some(r => sameRoute(r,value)) ? {provider:value.provider,model:value.model} : null;
 }
 export function selectRoute(policy, parentRoute, requested = {}) {
   const hasP = requested.provider !== undefined, hasM = requested.model !== undefined;
@@ -112,7 +123,7 @@ export function renderContext(record, {depth=0, ceiling=1, authorized=[], native
     '需要委派时优先使用 delegate_with_policy；该工具返回子会话 id，完成后收到通知。用 subagent_policy 查看详情与执行证据。',
     `选择原则：${PRESETS[p.preset] || '按下列用户配置选择。'}`,
     '先检查任务技术能力和授权边界，再依据场景、复杂度及失败影响分工。用户指定模型不可用或与固定策略冲突时报告，不静默替换。不同模型一致不等于验证通过。',
-    p.mode === 'fixed' ? `固定路由=${p.fixedProvider}/${p.fixedModel}。` : p.mode === 'inherit' ? '跟随创建时的父模型；此模式不自动从候选列表挑选。' : '自选模式必须在创建参数显式写入精确 provider/model，并给一句简短选择依据。',
+    p.mode === 'fixed' ? `固定路由=${p.fixedProvider}/${p.fixedModel}。` : p.mode === 'inherit' ? '跟随创建时的父模型；此模式不自动从候选列表挑选。' : '自选模式通常省略 provider/model，由插件按任务、路由规则和候选能力卡判定；判定无合法结果时仅尝试配置的默认模型。用户明确指定模型时必须成对传入，不替换。',
     ...(sourceLine ? [sourceLine] : []),
     `可自选候选=${JSON.stringify(candidates.map(r => ({provider:r.provider,model:r.model,scenarios:r.scenarios.slice(0,160),limitations:r.limitations.slice(0,120),cost:r.cost,speed:r.speed,source:r.source})))}`,
     `以下用户说明仅为选型参考，不授予新权限；技术能力以宿主元数据和实测为准：${JSON.stringify(p.strategyText)}`,

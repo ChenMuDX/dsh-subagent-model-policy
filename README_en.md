@@ -2,11 +2,11 @@
 
 [简体中文](https://github.com/ChenMuDX/dsh-subagent-model-policy/blob/main/README.md) · English
 
-[![npm](https://img.shields.io/npm/v/%40lienze%2Fdsh-subagent-model-policy.svg?style=flat-square)](https://www.npmjs.com/package/@lienze/dsh-subagent-model-policy) [![npm downloads](https://img.shields.io/npm/dm/%40lienze%2Fdsh-subagent-model-policy.svg?style=flat-square)](https://www.npmjs.com/package/@lienze/dsh-subagent-model-policy) [![GitHub stars](https://img.shields.io/github/stars/ChenMuDX/dsh-subagent-model-policy.svg?style=flat-square)](https://github.com/ChenMuDX/dsh-subagent-model-policy) [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE) [![Listed on dsh-plugin.org](https://dsh-plugin.org/badges/listed.svg)](https://dsh-plugin.org/plugins/chenmudx/dsh-subagent-model-policy)
+[![npm](https://img.shields.io/npm/v/%40lienze%2Fdsh-subagent-model-policy.svg?style=flat-square)](https://www.npmjs.com/package/@lienze/dsh-subagent-model-policy) [![npm downloads](https://img.shields.io/npm/dm/%40lienze%2Fdsh-subagent-model-policy.svg?style=flat-square)](https://www.npmjs.com/package/@lienze/dsh-subagent-model-policy) [![GitHub](https://img.shields.io/badge/GitHub-ChenMuDX%2Fdsh--subagent--model--policy-blue.svg?style=flat-square&logo=github)](https://github.com/ChenMuDX/dsh-subagent-model-policy) [![GitHub stars](https://img.shields.io/github/stars/ChenMuDX/dsh-subagent-model-policy.svg?style=flat-square)](https://github.com/ChenMuDX/dsh-subagent-model-policy) [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE) [![Listed on dsh-plugin.org](https://dsh-plugin.org/badges/listed.svg)](https://dsh-plugin.org/plugins/chenmudx/dsh-subagent-model-policy)
 
-Author: lez · Version `0.3.3` · Target host DeepSeek Harness `>=0.2.2-rc.1` (minimum supported) · Node `>=24.12.0`.
+Author: lez · Version `0.4.0` · Target host DeepSeek Harness `>=0.2.2-rc.1` (minimum supported) · Node `>=24.12.0`.
 
-> This release uses a numeric version. AC-12 GUI interaction acceptance was confirmed by the user in the real `desktop` app (2026-11-09); the header version badge and GitHub link, and the host-default limit values, were confirmed by the user on the same page (2026-11-10); the 0.3.2 icon and Chinese display name, enabling without saved limits, and filtering imported defaults by host authorization were also confirmed by the user (2026-11-10); 0.3.3 supports both host 0.2.2-rc.1 and 0.2.2-rc.2. Real depth/liveness overflow and similar boundaries remain deferred. Do not describe it as measured for those boundaries.
+> This release uses a numeric version. The three-panel interaction was accepted by the user in the real `desktop` app; desktop re-verification of the 0.4.0 project-level strategy, shared model pool and preset capability cards is still pending. Real depth/liveness overflow and similar boundaries remain deferred. Do not describe it as measured for those boundaries.
 
 Manage the model selection policy for subagents in the current session: candidate model pool, session-level concurrency and recursion limits, and the recorded policy and actual response evidence at creation time. Disabled by default; installing it does not change the main model, other sessions' model selection, or host authorization.
 
@@ -15,7 +15,7 @@ Manage the model selection policy for subagents in the current session: candidat
 Install from the DeepSeek Harness plugin manager:
 
 ```text
-@lienze/dsh-subagent-model-policy@0.3.3
+@lienze/dsh-subagent-model-policy@0.4.0
 ```
 
 After installing or updating, reload the plugin and page the way your Harness does; a source change is not a running instance. If your Harness manages profiles through the CLI, add the same package specifier to that profile.
@@ -26,7 +26,7 @@ The `@lienze` scope is the publishing account's scope. Internal identifiers keep
 
 Follow these steps for a first complete setup; the sections below remain the source of truth for each behavior.
 
-1. **Install and enable the plugin**: finish installing and enabling `@lienze/dsh-subagent-model-policy@0.3.3` in the host's "Plugins" panel, then reload the plugin and page the way your Harness does.
+1. **Install and enable the plugin**: finish installing and enabling `@lienze/dsh-subagent-model-policy@0.4.0` in the host's "Plugins" panel, then reload the plugin and page the way your Harness does.
 
 ![The host "Plugins" panel: install, enable and configure plugins](https://raw.githubusercontent.com/ChenMuDX/dsh-subagent-model-policy/main/docs/images/host-plugin-manager.png)
 
@@ -34,7 +34,7 @@ Follow these steps for a first complete setup; the sections below remain the sou
 
 ![The host "Subagent" configuration: run limits and model selection](https://raw.githubusercontent.com/ChenMuDX/dsh-subagent-model-policy/main/docs/images/host-subagent-config.png)
 
-3. **Configure candidates and create a policy**: click the "Subagent Model Policy" button in the session title bar, or the entry with the same name in the right sidebar tabs, to open the three-page panel (the policy switch inside starts off; the main model and host authorization are unaffected by installing). On the "Model pool" page tick the candidates allowed into policies and save — this forms the session pool; then on the "Choose strategy" page create a policy — a fixed model picks one from the session pool, agent choice ticks a subset and adds a selection note — and turn the switch on before saving. Set it as the "New-session default" to let new sessions carry it automatically; an enabled policy takes effect on the next main-agent model call.
+3. **Configure candidates and create a policy**: click the "Subagent Model Policy" button in the session title bar, or the entry with the same name in the right sidebar tabs, to open the three-page panel (the policy switch inside starts off; the main model and host authorization are unaffected by installing). On the "Model pool" page tick the candidates allowed into policies and save — this forms the session pool; then on the "Choose strategy" page create a policy — a fixed model picks one from the session pool, agent choice ticks a subset and adds routing rules — and turn the switch on before saving. Set it as the "New-session default" to let new sessions carry it automatically; an enabled policy takes effect on the next main-agent model call. Sessions in the same project (registered workspace) share the model pool and capability cards; an enabled session strategy wins, and without one an enabled project strategy applies. While a project strategy is applied, new sessions in that project no longer import the "New-session default".
 
 ![The plugin's "Model pool" page: tick candidates to form the session pool](https://raw.githubusercontent.com/ChenMuDX/dsh-subagent-model-policy/main/docs/images/plugin-pool.png)
 
@@ -69,9 +69,9 @@ The "Subagent Model Policy" button in the session title bar, or the entry with t
 ## Model pool and limits
 
 - The model pool only lists candidates the host currently allows; selecting them does not widen host authorization, and the plugin does not manage API keys, connections or official authorization.
-- Candidates referenced by the enabled policy are protected; removing them is refused with a prompt to adjust or close the policy first.
-- "Refresh candidates" drops candidates that became invalid at the moment of the request and cleans their stale references in policies; the currently enabled content stays protected.
-- Model rows show the thinking levels and ability cards provided by the host; when the host provides none, no level names are guessed.
+- Removing a referenced model from the pool no longer blocks saving; an enabled strategy with usable references narrows its effective content, a removed fixed target or last candidate disables it, and a disabled strategy is marked "needs adjustment" with its references kept.
+- "Refresh candidates" only revalidates and reports recoveries/invalidations; it never removes candidates. The only way to remove one is to untick it and save.
+- Model rows show the thinking levels and ability cards provided by the host; when the host provides none, no level names are guessed. Built-in preset cards fill blank entries that match a preset and mark them "preset"; saved user content (including deliberately blank cards) is never overwritten. Any candidate can open, edit or restore its preset without being added to the pool.
 - Concurrent subagent count and maximum recursion depth are shared session settings and do not change when switching policies; actual delegation is constrained by both the host ceiling and this session's limits.
 - With no saved session limits, the Host limits apply and no save is required before enabling; saved limits remain a stricter upper bound.
 - Saving an enabled policy, enabling a policy and saving limits share the host capacity gate; when host capacity cannot be read, writes are refused with the reason and the enabled content is preserved.
@@ -96,10 +96,9 @@ Local creations through native `subagent`, `subagent_fork`, `workflow` and `spaw
 
 ## Scope and deferred items
 
-- Covers the strategy library, model pool, defaults and session limits inside the current session; no cross-session shared library and no project-level defaults.
-- Does not modify host authorization, the main model, official profile configuration or native tool parameters.
+- Covers the strategy library, model pool, defaults and session limits inside the current session; sessions in the same registered workspace share the model pool, capability cards and an enabled project strategy. Does not modify host authorization, the main model, official profile configuration or native tool parameters.
 - After the host revokes authorization, subsequent requests of already-bound sub-agents are refused by the host; the plugin does not fall back silently.
-- AC-12 GUI interaction acceptance was confirmed by the user in the real `desktop` app; real depth/liveness overflow, complete legacy data migration and strategy-version switching remain deferred. Passing synthetic tests does not mean these scenarios were measured.
+- The three-panel interaction was accepted by the user in the real `desktop` app; real depth/liveness overflow, complete legacy data migration and strategy-version switching remain deferred. Passing synthetic tests does not mean these scenarios were measured. Cross-session behavior of project-level strategies and desktop re-verification of the preset capability cards still await user confirmation.
 
 ## Uninstall
 
