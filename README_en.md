@@ -6,7 +6,7 @@
 
 Author: lez · Version `0.4.0` · Target host DeepSeek Harness `>=0.2.2-rc.1` (minimum supported) · Node `>=24.12.0`.
 
-> This release uses a numeric version. The three-panel interaction was accepted by the user in the real `desktop` app; desktop re-verification of the 0.4.0 project-level strategy, shared model pool and preset capability cards is still pending. Real depth/liveness overflow and similar boundaries remain deferred. Do not describe it as measured for those boundaries.
+> This release uses a numeric version. 0.4.1 fixes candidate reading on DSH 0.2.3 (confirmed on the web instance); the desktop re-check of the project-level policy, shared model pool and preset capability cards introduced in 0.4.0 is still pending. The three-panel interaction was accepted by the user in the real `desktop` app; desktop re-verification of the 0.4.0 project-level strategy, shared model pool and preset capability cards is still pending. Real depth/liveness overflow and similar boundaries remain deferred. Do not describe it as measured for those boundaries.
 
 Manage the model selection policy for subagents in the current session: candidate model pool, session-level concurrency and recursion limits, and the recorded policy and actual response evidence at creation time. Disabled by default; installing it does not change the main model, other sessions' model selection, or host authorization.
 
@@ -15,7 +15,7 @@ Manage the model selection policy for subagents in the current session: candidat
 Install from the DeepSeek Harness plugin manager:
 
 ```text
-@lienze/dsh-subagent-model-policy@0.4.0
+@lienze/dsh-subagent-model-policy@0.4.1
 ```
 
 After installing or updating, reload the plugin and page the way your Harness does; a source change is not a running instance. If your Harness manages profiles through the CLI, add the same package specifier to that profile.
@@ -26,7 +26,7 @@ The `@lienze` scope is the publishing account's scope. Internal identifiers keep
 
 Follow these steps for a first complete setup; the sections below remain the source of truth for each behavior.
 
-1. **Install and enable the plugin**: finish installing and enabling `@lienze/dsh-subagent-model-policy@0.4.0` in the host's "Plugins" panel, then reload the plugin and page the way your Harness does.
+1. **Install and enable the plugin**: finish installing and enabling `@lienze/dsh-subagent-model-policy@0.4.1` in the host's "Plugins" panel, then reload the plugin and page the way your Harness does.
 
 ![The host "Plugins" panel: install, enable and configure plugins](https://raw.githubusercontent.com/ChenMuDX/dsh-subagent-model-policy/main/docs/images/host-plugin-manager.png)
 

@@ -4,9 +4,9 @@
 
 [![npm](https://img.shields.io/npm/v/%40lienze%2Fdsh-subagent-model-policy.svg?style=flat-square)](https://www.npmjs.com/package/@lienze/dsh-subagent-model-policy) [![npm downloads](https://img.shields.io/npm/dm/%40lienze%2Fdsh-subagent-model-policy.svg?style=flat-square)](https://www.npmjs.com/package/@lienze/dsh-subagent-model-policy) [![GitHub](https://img.shields.io/badge/GitHub-ChenMuDX%2Fdsh--subagent--model--policy-blue.svg?style=flat-square&logo=github)](https://github.com/ChenMuDX/dsh-subagent-model-policy) [![GitHub stars](https://img.shields.io/github/stars/ChenMuDX/dsh-subagent-model-policy.svg?style=flat-square)](https://github.com/ChenMuDX/dsh-subagent-model-policy) [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE) [![Listed on dsh-plugin.org](https://dsh-plugin.org/badges/listed.svg)](https://dsh-plugin.org/plugins/chenmudx/dsh-subagent-model-policy)
 
-作者：lez · 版本 `0.4.0` · 目标宿主 DeepSeek Harness `>=0.2.2-rc.1`（最低支持标准）· Node `>=24.12.0`。
+作者：lez · 版本 `0.4.1` · 目标宿主 DeepSeek Harness `>=0.2.2-rc.1`（最低支持标准）· Node `>=24.12.0`。
 
-> 本版本使用数字版本号。三页面板交互已由用户在真实 `desktop` 完成验收；0.4.0 新增的项目级策略、共享模型池与预设能力卡的桌面复核仍待用户确认。深度/存活超限等真实场景仍暂缓，不要把本版本表述为这些边界的实测版。
+> 本版本使用数字版本号。三页面板交互已由用户在真实 `desktop` 完成验收；0.4.1 修复 DSH 0.2.3 上的模型池候选读取（已在 web 实例确认）；0.4.0 新增的项目级策略、共享模型池与预设能力卡的桌面复核仍待用户确认。深度/存活超限等真实场景仍暂缓，不要把本版本表述为这些边界的实测版。
 
 在当前会话中管理子智能体的模型选择策略、候选模型池、会话级并发/递归限制，并记录创建时的策略与实际响应证据。默认关闭；安装不会改变主模型、其他会话的模型选择或宿主授权。
 
@@ -15,7 +15,7 @@
 在 DeepSeek Harness 的插件管理器中安装：
 
 ```text
-@lienze/dsh-subagent-model-policy@0.4.0
+@lienze/dsh-subagent-model-policy@0.4.1
 ```
 
 安装后按当前 Harness 的方式重载插件与页面；源码修改不等于运行实例已更新。若当前 Harness 使用 CLI 管理 profile，按该版本文档把同一包说明符加入对应 profile。
@@ -26,7 +26,7 @@
 
 按下面顺序即可完成一次完整设置；各项语义以后面对应小节为准。
 
-1. **安装并启用插件**：在宿主左侧「插件」面板完成 `@lienze/dsh-subagent-model-policy@0.4.0` 的安装与启用，并按当前 Harness 的方式重载插件与页面。
+1. **安装并启用插件**：在宿主左侧「插件」面板完成 `@lienze/dsh-subagent-model-policy@0.4.1` 的安装与启用，并按当前 Harness 的方式重载插件与页面。
 
 ![宿主「插件」面板：安装、启用和配置插件](https://raw.githubusercontent.com/ChenMuDX/dsh-subagent-model-policy/main/docs/images/host-plugin-manager.png)
 

@@ -181,28 +181,56 @@ export async function applyWithPackageMeta(ctx, packageMeta, presetCards = readP
     }
     return id;
   }
+  // DSH 0.2.3-alpha.1 rewrote this surface: the Host stopped freezing an
+  // authorization snapshot into each Session and replaced `current()` with
+  // `allowedRoutes()`. Read whichever contract the running Host exposes and
+  // never guess the other one.
+  function selectionService() {
+    try {
+      const service=ctx.subagentModelSelection ?? ctx.get?.('subagentModelSelection');
+      return service && typeof service==='object' ? service : null;
+    } catch { return null; }
+  }
+  function selectionContract() {
+    const service=selectionService();
+    if(!service) return 'none';
+    if(typeof service.current==='function') return 'current';
+    if(typeof service.allowedRoutes==='function') return 'allowedRoutes';
+    return 'none';
+  }
   function frozenSnapshot(s) {
     if(!s) return undefined;
-    const value=ctx.sessionProjections.stateOf(s,'subagentModelSelectionPolicy');
-    return Array.isArray(value) ? value : undefined;
+    // The 0.2.3 Host keeps no per-Session policy projection: the registry read
+    // would return undefined and log a deprecation warning.
+    if(selectionContract()!=='current') return undefined;
+    try {
+      const value=ctx.sessionProjections.stateOf(s,'subagentModelSelectionPolicy');
+      return Array.isArray(value) ? value : undefined;
+    } catch { return undefined; }
   }
-  // Only a top-level, non-seeded Session re-reads the host's live allow-list. Child,
-  // fork and seed Sessions keep their own frozen authorization snapshot, so a later
-  // host change never retroactively widens an inherited boundary.
+  // Only a top-level, non-seeded Session re-reads the host's live allow-list. Under
+  // the 0.2.2 contract a child, fork or seed Session keeps its own frozen
+  // authorization snapshot, so a later host change never retroactively widens an
+  // inherited boundary. The 0.2.3 Host keeps no snapshot at all and authorizes every
+  // Session from the live list.
   function liveRootSession(s) {
     const header=s?.header;
     return !!header && header.origin!=='subagent' && header.isSeeded!==true;
   }
-  // The host freezes its global allow-list into each brand-new top-level session and
-  // never refreshes that projection, while its own settings keep changing. For an
-  // eligible top-level root the live list is the real upper bound, so it is used even
-  // when a snapshot exists; the snapshot is kept only as the recorded count. Child,
-  // fork and seed sessions still intersect their own snapshot.
+  // Under the 0.2.2 contract the host freezes its global allow-list into each
+  // brand-new top-level session and never refreshes that projection, while its own
+  // settings keep changing. For an eligible top-level root the live list is the real
+  // upper bound, so it is used even when a snapshot exists; the snapshot is kept only
+  // as the recorded count. Child, fork and seed sessions still intersect their own
+  // snapshot.
   function authorization(agent, current=currentSelection()) {
     if(!current?.enabled) return {source:'none', routes:[], frozen:null};
     const own=session(agent), root=ctx.sessions.get(rootId(agent));
-    const frozen=frozenSnapshot(own) ?? frozenSnapshot(root);
     const allowed=new Set(current.allowedModels.map(routeKey));
+    // The 0.2.3 Host authorizes the live list in every Session and records no
+    // per-Session snapshot, so no Session narrows the live list any more.
+    if(selectionContract()==='allowedRoutes') return {source:'host', frozen:null, routes:current.allowedModels.map(r=>({...r}))};
+    const frozen=frozenSnapshot(own) ?? frozenSnapshot(root);
     if(frozen && liveRootSession(own)) return {source:'host', frozen:frozen.length, routes:current.allowedModels.map(r=>({...r}))};
     if(frozen) return {source:'session', frozen:frozen.length, routes:frozen.filter(r=>allowed.has(routeKey(r))).slice(0,24)};
     if(liveRootSession(root)) return {source:'host', frozen:null, routes:current.allowedModels.map(r=>({...r}))};
@@ -210,12 +238,30 @@ export async function applyWithPackageMeta(ctx, packageMeta, presetCards = readP
   }
   function officialRoutes(agent, current) { return authorization(agent, current).routes; }
   // The live selection read must never break a read or a brand-new session: an
-  // unavailable or malformed value simply means "no live allow-list here".
+  // unavailable or malformed value simply means "no live allow-list here". A
+  // failed read keeps that fail-open posture but carries the reason, so a broken
+  // Host setting is reported instead of being reported as "disabled".
   function currentSelection() {
+    const service=selectionService();
+    if(!service) return null;
     try {
-      const value=ctx.subagentModelSelection.current();
-      return value && typeof value === 'object' ? value : null;
-    } catch { return null; }
+      if(typeof service.current==='function') {
+        const value=service.current();
+        if(!value || typeof value!=='object') return null;
+        return {enabled:value.enabled===true, allowedModels:Array.isArray(value.allowedModels)?value.allowedModels.map(r=>({...r})):[], issue:null};
+      }
+      if(typeof service.allowedRoutes==='function') {
+        const routes=service.allowedRoutes();
+        if(routes===undefined) return {enabled:false, allowedModels:[], issue:null};
+        return {enabled:true, allowedModels:Array.isArray(routes)?routes.map(r=>({provider:r.provider, model:r.model})):[], issue:null};
+      }
+      return null;
+    } catch(error) {
+      // 0.2.3 throws SubagentError('INVALID_MODEL_SELECTION_SETTINGS') when the
+      // setting is enabled but its route list is empty, malformed or repeated.
+      const code=typeof error?.code==='string'?`（${error.code}）`:'';
+      return {enabled:false, allowedModels:[], issue:`宿主子智能体模型选择设置读取失败${code}：${error?.message ?? String(error)}`};
+    }
   }
   // `null` means the Host selection is disabled, so no authorization filter
   // applies; an enabled selection with no readable list authorizes nothing.
@@ -657,10 +703,13 @@ export async function applyWithPackageMeta(ctx, packageMeta, presetCards = readP
     };
     const rows=[...runs.entries()].map(([,r])=>r).filter(r=>r.rootId===id).sort((a,b)=>b.createdAt-a.createdAt).slice(0,50);
     const diagnostics=[];
+    if(current?.issue) diagnostics.push(current.issue);
     if(authz.source==='host') diagnostics.push(authz.frozen===null
-      ? '本会话没有官方固化快照；固定/自选按宿主当前已启用路由临时生效，原生 subagent 仍不带模型参数，请使用 delegate_with_policy。'
+      ? (selectionContract()==='allowedRoutes'
+        ? '候选按宿主当前已启用列表实时显示；宿主已不再按会话固化授权，池新增与委派仍按发起瞬间实时校验。'
+        : '本会话没有官方固化快照；固定/自选按宿主当前已启用路由临时生效，原生 subagent 仍不带模型参数，请使用 delegate_with_policy。')
       : `候选按宿主当前已启用列表实时显示；会话固化快照 ${authz.frozen} 条仅存记录；池新增与委派仍按发起瞬间实时校验。`);
-    else if(!authz.routes.length) diagnostics.push(current?.enabled
+    else if(!authz.routes.length && !current?.issue) diagnostics.push(current?.enabled
       ? '当前会话没有官方显式模型选择授权快照，且该会话不满足兜底条件（例如 fork/种子会话）；可使用跟随模式。'
       : '官方子智能体模型选择未启用；当前只能使用跟随模式。');
     if(record.issue) diagnostics.push(record.issue);
